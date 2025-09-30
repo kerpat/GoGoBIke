@@ -2333,7 +2333,7 @@ clientsTableBody.addEventListener('click', async (e) => {
                 if (rentalFetchError) throw new Error('Не удалось получить данные аренды для отправки акта.');
                 const userId = rental.user_id;
 
-                const pdfServerUrl = 'https://serverdogovor.onrender.com/api/user';
+                const pdfServerUrl = 'https://gogobikedogovor.onrender.com/api/user';
                 const pdfResponse = await fetch(pdfServerUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

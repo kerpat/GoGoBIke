@@ -15,5 +15,5 @@ window.APP_CONFIG = {
   APP_BASE_URL: 'https://go-go-b-ike.vercel.app',
 
   // URL for the separate server handling contracts (PDF generation)
-  CONTRACTS_API_URL: 'https://serverdogovor.onrender.com'
+  CONTRACTS_API_URL: 'https://gogobikedogovor.onrender.com'
 };
