@@ -19,7 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let allClients = [];
     let allChats = [];
     let activeChatId = null;
-    let currentChatSubscription = null;
 
     async function loadAllData() {
         try {
@@ -78,7 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function openChat(chatId) {
-        if (currentChatSubscription) supabase.removeChannel(currentChatSubscription);
         activeChatId = chatId;
         const chat = allChats.find(c => c.id === chatId);
         if (!chat) return;
@@ -94,8 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (error) { chatHistoryContainer.textContent = 'Ошибка загрузки'; return; }
         data.forEach(msg => renderMessage(msg, false));
         chatHistoryContainer.scrollTop = chatHistoryContainer.scrollHeight;
-        const filter = chat.is_anonymous ? `anonymous_chat_id=eq.${chatId}` : `client_id=eq.${chatId}`;
-        currentChatSubscription = supabase.channel(`support-chat-${chatId}`).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages', filter }, (payload) => renderMessage(payload.new)).on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'support_messages', filter }, (payload) => handleMessageUpdate(payload)).subscribe();
     }
     
     function renderMessage(message, doScroll = true) {
@@ -127,7 +123,15 @@ document.addEventListener('DOMContentLoaded', () => {
         chatInput.disabled = true; sendBtn.disabled = true;
         let fileUrl = null, fileType = null, messageText = text;
         if (file) {
-            const filePath = `admin_uploads/${Date.now()}_${file.name}`;
+            // --- НАЧАЛО ИСПРАВЛЕНИЯ ---
+            // 1. Вытаскиваем расширение файла (например, 'jpg')
+            const fileExt = file.name.split('.').pop();
+            // 2. Создаем НОВОЕ, БЕЗОПАСНОЕ имя файла из цифр и расширения
+            const fileName = `${Date.now()}.${fileExt}`;
+            // 3. Собираем путь к файлу с новым безопасным именем
+            const filePath = `admin_uploads/${fileName}`;
+            // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
+
             const { error: uploadError } = await supabase.storage.from('support_files').upload(filePath, file);
             if (uploadError) { alert('Не удалось загрузить файл: ' + uploadError.message); chatInput.disabled = false; sendBtn.disabled = false; return; }
             const { data: urlData } = supabase.storage.from('support_files').getPublicUrl(filePath);
@@ -141,7 +145,6 @@ document.addEventListener('DOMContentLoaded', () => {
         chatInput.disabled = false; sendBtn.disabled = false; chatInput.focus();
     }
 
-    supabase.channel('public:support_messages').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages' }, () => loadAllData()).subscribe();
     searchInput.addEventListener('input', (e) => renderChatList(e.target.value));
     sendBtn.addEventListener('click', () => sendMessage(chatInput.value.trim()));
     chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); sendMessage(chatInput.value.trim()); } });
@@ -151,6 +154,53 @@ document.addEventListener('DOMContentLoaded', () => {
         adminAttachBtn.addEventListener('click', () => adminFileInput.click());
         adminFileInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (file) sendMessage(file.name, file); e.target.value = null; });
     }
+
+    // --- ЕДИНАЯ ПОДПИСКА НА ВСЕ ИЗМЕНЕНИЯ В ЧАТЕ ---
+    const supportChannel = supabase.channel('admin-support-channel'); // Уникальное имя для канала
+
+    supportChannel
+      .on('postgres_changes', {
+        event: '*', // Слушаем ВСЁ: INSERT, UPDATE, DELETE
+        schema: 'public',
+        table: 'support_messages'
+      }, payload => {
+
+        console.log('Пришло обновление из чата:', payload);
+
+        // Действие 1: ВСЕГДА обновляем список чатов слева.
+        // Это нужно, чтобы новые чаты появлялись и старые поднимались наверх.
+        loadAllData();
+
+        // Действие 2: Если событие - это вставка НОВОГО сообщения...
+        if (payload.eventType === 'INSERT') {
+          const newMessage = payload.new;
+          const messageChatId = newMessage.client_id || newMessage.anonymous_chat_id;
+
+          // ...и это сообщение для ТЕКУЩЕГО ОТКРЫТОГО чата...
+          if (activeChatId && messageChatId === activeChatId) {
+            // ...то мы рисуем его в окне.
+            renderMessage(newMessage);
+          }
+        }
+
+        // Действие 3: Если событие - это ОБНОВЛЕНИЕ сообщения (например, прочитали)...
+        if (payload.eventType === 'UPDATE') {
+            const updatedMessage = payload.new;
+            const messageChatId = updatedMessage.client_id || updatedMessage.anonymous_chat_id;
+
+            // ...и это сообщение в ТЕКУЩЕМ ОТКРЫТОМ чате...
+            if (activeChatId && messageChatId === activeChatId) {
+                // ...то обновляем его статус (галочки).
+                handleMessageUpdate(payload);
+            }
+        }
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('УСПЕШНО ПОДПИСАН НА ВСЕ ОБНОВЛЕНИЯ ЧАТА ПОДДЕРЖКИ!');
+        }
+      });
+
     loadAllData();
 
     // --- Page Transitions ---

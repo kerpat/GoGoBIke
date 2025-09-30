@@ -1108,7 +1108,15 @@
             let messageText = text;
 
             if (file) {
-                const filePath = `${userId || anonymousChatId}/${Date.now()}_${file.name}`;
+                // --- НАЧАЛО ИСПРАВЛЕНИЯ ---
+                // 1. Вытаскиваем расширение файла (например, 'jpg')
+                const fileExt = file.name.split('.').pop();
+                // 2. Создаем НОВОЕ, БЕЗОПАСНОЕ имя файла из цифр и расширения
+                const fileName = `${Date.now()}.${fileExt}`;
+                // 3. Собираем путь к файлу с новым безопасным именем
+                const filePath = `${userId || anonymousChatId}/${fileName}`;
+                // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
+
                 const { error: uploadError } = await supabase.storage.from('support_files').upload(filePath, file);
                 if (uploadError) { alert('Не удалось загрузить файл: ' + uploadError.message); return; }
                 const { data: urlData } = supabase.storage.from('support_files').getPublicUrl(filePath);
