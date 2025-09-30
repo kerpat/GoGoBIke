@@ -169,131 +169,56 @@
     };
 
     // --- ЛОГИКА КАРТЫ (ЗАПУСКАЕТСЯ, КОГДА API ГОТОВ) ---
-    function initMapWithData(userCity) {
+    async function initMapWithData(userCity) {
+        // 1. Берем данные для города пользователя или Воронеж по умолчанию
         const cityInfo = cityData[userCity] || cityData['Воронеж'];
 
+        // 2. Создаем карту с центром в этом городе
         let myMap = new ymaps.Map('map', {
             center: cityInfo.coords,
             zoom: cityInfo.zoom,
             controls: []
         });
 
+        // Находим элементы для информационной карточки
         const infoCard = document.getElementById('bike-info-card');
         const cardAddress = document.getElementById('card-address');
         const cardBikes = document.getElementById('card-bikes');
-        const cardDistanceTime = document.getElementById('card-distance-time');
-        const routeButton = document.getElementById('route-button');
-        const recenterBtn = document.getElementById('recenter-map-btn');
-        let currentRoute = null;
-        let bikePlacemarks = [];
 
-        const UserIconLayout = ymaps.templateLayoutFactory.createClass(
-            '<div class="user-placemark">' +
-                '<svg width="26" height="36" viewBox="0 0 13 18" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-                    '<path fill-rule="evenodd" clip-rule="evenodd" d="M3.17846 0.843094C5.14483 -0.299453 7.56183 -0.279483 9.50975 0.895405C11.4385 2.09422 12.6108 4.23376 12.5999 6.5353C12.555 8.82174 11.298 10.971 9.72673 12.6325C8.81985 13.5958 7.80535 14.4475 6.70396 15.1704C6.59053 15.236 6.46628 15.2799 6.33734 15.3C6.21324 15.2947 6.09239 15.258 5.98568 15.1933C4.30418 14.1071 2.829 12.7206 1.6311 11.1006C0.628731 9.74823 0.0592531 8.11441 1.99923e-06 6.42098C-0.00129925 4.11502 1.21209 1.98564 3.17846 0.843094ZM4.31507 7.37541C4.64584 8.19086 5.42658 8.72276 6.29276 8.72277C6.86021 8.72684 7.40569 8.49955 7.80765 8.09153C8.20961 7.68352 8.43465 7.12868 8.43264 6.55065C8.43567 5.66834 7.91623 4.87119 7.11686 4.5314C6.31748 4.19162 5.39586 4.37622 4.78231 4.99902C4.16875 5.62182 3.9843 6.55996 4.31507 7.37541Z" fill="#00BABA"/>' +
-                    '<ellipse opacity="0.4" cx="6.29956" cy="17.0999" rx="4.5" ry="0.9" fill="#00BABA"/>' +
-                '</svg>' +
-            '</div>'
-        );
-
-        // Add user location placemark (will be updated with geolocation)
-        let userPlacemark = null;
-
-        // Try to get user's current location
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const userCoords = [position.coords.latitude, position.coords.longitude];
-                    userPlacemark = new ymaps.Placemark(userCoords, {
-                        balloonContent: `<strong>Моя позиция</strong>`
-                    }, {
-                        iconLayout: UserIconLayout,
-                        iconOffset: [-13, -36]
-                    });
-                    myMap.geoObjects.add(userPlacemark);
-                },
-                (error) => {
-                    console.log('Geolocation error:', error);
-                }
-            );
-        }
-
-        // Load all bikes with locations
-        async function loadBikes() {
-            try {
-                const { data, error } = await supabase.from('bikes').select('*').eq('status', 'available');
-                if (error) throw error;
-
-                data.forEach(bike => {
-                    if (bike.location_geojson && bike.location_geojson.coordinates) {
-                        const coords = [bike.location_geojson.coordinates[1], bike.location_geojson.coordinates[0]];
-                        const placemark = new ymaps.Placemark(coords, {
-                            balloonContent: `<strong>${bike.model_name || 'Велосипед'}</strong><br>Код: ${bike.bike_code}<br>Статус: ${bike.status}`
-                        }, {
-                            preset: 'islands#dotIcon',
-                            iconColor: '#26b999'
-                        });
-                        placemark.events.add('click', () => {
-                            cardAddress.textContent = `Велосипед ${bike.bike_code}`;
-                            cardBikes.textContent = bike.status === 'available' ? 'Свободен' : 'Занят';
-                            infoCard.classList.add('visible');
-                            // Use user's current location or city center for routing
-                            const startCoords = userPlacemark ? userPlacemark.geometry.getCoordinates() : cityInfo.coords;
-                            plotRouteBetweenPoints(startCoords, coords);
-                        });
-                        myMap.geoObjects.add(placemark);
-                        bikePlacemarks.push(placemark);
-                    }
-                });
-            } catch (err) {
-                console.error('Error loading bikes:', err);
+        // 3. Получаем количество доступных велосипедов из базы
+        let bikeCount = 0;
+        try {
+            const { count, error } = await supabase
+                .from('bikes')
+                .select('*', { count: 'exact', head: true })
+                .eq('status', 'available');
+            if (!error) {
+                bikeCount = count;
             }
+        } catch (err) {
+            console.error('Error fetching bike count:', err);
         }
 
-        loadBikes();
+        // --- ВОТ ГЛАВНОЕ: ПРОСТО РИСУЕМ ТОЧКУ ---
 
-        function plotRouteBetweenPoints(startCoords, endCoords, onRouteSuccess) {
-            if (currentRoute) { myMap.geoObjects.remove(currentRoute); }
-            ymaps.modules.require(['multiRouter.MultiRoute'], function (MultiRoute) {
-                currentRoute = new MultiRoute({
-                    referencePoints: [startCoords, endCoords],
-                    params: { routingMode: 'pedestrian' }
-                }, {
-                    boundsAutoApply: false,
-                    routeStrokeColor: '#26b999', routeStrokeWidth: 4,
-                    routeActiveStrokeColor: '#26b999', routeActiveStrokeWidth: 6
-                });
-                myMap.geoObjects.add(currentRoute);
-
-                currentRoute.model.events.add('requestsuccess', function() {
-                    const activeRoute = currentRoute.getActiveRoute();
-                    if (activeRoute) {
-                        const travelTime = activeRoute.properties.get("duration").text;
-                        const distance = activeRoute.properties.get("distance").text;
-                        cardDistanceTime.textContent = `${distance} (${travelTime})`;
-                        if (onRouteSuccess) { onRouteSuccess(); }
-                    } else { cardDistanceTime.textContent = 'Маршрут не найден'; }
-                });
-                currentRoute.model.events.add('error', () => { cardDistanceTime.textContent = 'Ошибка построения маршрута'; });
-            }, () => { cardDistanceTime.textContent = 'Ошибка загрузки модуля'; });
-        }
-
-        routeButton.addEventListener('click', () => {
-            infoCard.classList.remove('visible');
-            const startCoords = userPlacemark ? userPlacemark.geometry.getCoordinates() : cityInfo.coords;
-            const zoomToStart = () => myMap.setCenter(startCoords, 17, { duration: 800, checkZoomRange: true });
-            if (currentRoute) { zoomToStart(); }
-            else { plotRouteBetweenPoints(startCoords, [0,0], zoomToStart); } // Placeholder, adjust as needed
+        // 4. Создаем метку (точку) с координатами из cityInfo
+        const bikePlacemark = new ymaps.Placemark(cityInfo.coords, {
+            // Это текст, который появится во всплывающем окне при клике
+            balloonContent: `<strong>${cityInfo.address}</strong><br>Здесь ${bikeCount} велосипедов`
+        }, {
+            // Это внешний вид точки
+            preset: 'islands#dotIcon',
+            iconColor: '#26b999' // Зеленый цвет
         });
 
-        recenterBtn.addEventListener('click', () => {
-            const centerCoords = userPlacemark ? userPlacemark.geometry.getCoordinates() : cityInfo.coords;
-            myMap.setCenter(centerCoords, 14);
-            infoCard.classList.remove('visible');
-            if (currentRoute) {
-                myMap.geoObjects.remove(currentRoute);
-                currentRoute = null;
-            }
+        // 5. Добавляем эту точку на карту
+        myMap.geoObjects.add(bikePlacemark);
+
+        // Добавим простой обработчик клика, чтобы показывалась карточка
+        bikePlacemark.events.add('click', () => {
+            cardAddress.textContent = cityInfo.address;
+            cardBikes.textContent = bikeCount.toString();
+            infoCard.classList.add('visible');
         });
     }
 
