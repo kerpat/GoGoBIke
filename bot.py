@@ -31,9 +31,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '8126548981:AAGC86ZaJ0SYLICC0WbpS7aGOhU9t8iz_a4')
-WEBAPP_REGISTER_API = 'https://prizmalol-neon.vercel.app/api/telegram-register'
-BOT_REGISTER_API = 'https://prizmalol-neon.vercel.app/api/auth'
+TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '8346957794:AAEkzWSX0eXnXEDwug1WurLbfOnhUdlgxdI')
+WEBAPP_REGISTER_API = 'https://go-go-b-ike.vercel.app/api/telegram-register'
+BOT_REGISTER_API = 'https://go-go-b-ike.vercel.app/api/auth'
 ADMIN_SECRET_KEY = 'your_super_secret_admin_key' # Секрет для уведомлений от админки
 WEB_APP_URL = 'https://prizmalol-neon.vercel.app' # URL вашего основного веб-приложения
 
