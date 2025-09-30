@@ -1,7 +1,7 @@
 // ▼▼▼ ВСТАВЬТЕ ЭТОТ КОД В ПУСТОЙ ФАЙЛ admin_support.js ▼▼▼
 document.addEventListener('DOMContentLoaded', () => {
-    const SUPABASE_URL = window.APP_CONFIG.SUPABASE_URL;
-    const SUPABASE_ANON_KEY = window.APP_CONFIG.SUPABASE_ANON_KEY;
+    const SUPABASE_URL = 'https://briulxpnjxlsgfgkqvfh.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyaXVseHBuanhsc2dmZ2txdmZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxNzUwNzEsImV4cCI6MjA3NDc1MTA3MX0.Zj-V22HQ2MlZJToC4ZzBcfqPtAVI8NAjb7TQMiJQU60';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const chatListContainer = document.getElementById('chat-list-container');
     const chatWindowHeader = document.getElementById('chat-window-header');
