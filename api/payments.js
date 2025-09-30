@@ -31,7 +31,7 @@ function parseRequestBody(body) {
     return body;
 }
 
-async function handleChargeFromBalance({ userId, tariffId, bikeCode }) {
+async function handleChargeFromBalance({ userId, tariffId, bikeCode, amount, days }) {
     if (!userId || !tariffId) {
         return { status: 400, body: { error: 'userId and tariffId are required' } };
     }
@@ -45,7 +45,8 @@ async function handleChargeFromBalance({ userId, tariffId, bikeCode }) {
     if (tariffResult.error || !tariffResult.data) throw new Error('Tariff not found.');
     if (clientResult.error || !clientResult.data) throw new Error('Client not found.');
 
-    const rentalCost = tariffResult.data.price_rub;
+    const rentalCost = amount || tariffResult.data.price_rub;
+    const duration = days || tariffResult.data.duration_days;
     const userBalance = clientResult.data.balance_rub;
 
     if (userBalance < rentalCost) {
@@ -119,10 +120,9 @@ async function handleChargeFromBalance({ userId, tariffId, bikeCode }) {
     }
 
     // 4. Создать запись об аренде со статусом 'awaiting_contract_signing'
-    const { data: tariffData } = await supabaseAdmin.from('tariffs').select('duration_days').eq('id', tariffId).single();
     const startDate = new Date();
     const endDate = new Date();
-    endDate.setDate(startDate.getDate() + (tariffData?.duration_days || 7));
+    endDate.setDate(startDate.getDate() + duration);
 
     const { data: newRental, error: rentalError } = await supabaseAdmin
         .from('rentals')

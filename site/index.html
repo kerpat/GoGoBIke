@@ -1169,7 +1169,7 @@ function initializeMainScreenEventListeners() {
                     const response = await fetch('/api/payments', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'charge-from-balance', userId: userId, tariffId: tariff.id, bikeCode: bikeCode })
+                        body: JSON.stringify({ action: 'charge-from-balance', userId: userId, tariffId: tariff.id, bikeCode: bikeCode, amount: cost, days: selectedExt ? selectedExt.days : undefined })
                     });
 
                     const result = await response.json();
@@ -1183,7 +1183,7 @@ function initializeMainScreenEventListeners() {
                     const response = await fetch('/api/payments', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'create-payment', userId: userId, tariffId: tariff.id, bikeCode: bikeCode })
+                        body: JSON.stringify({ action: 'create-payment', userId: userId, tariffId: tariff.id, bikeCode: bikeCode, amount: cost, days: selectedExt ? selectedExt.days : undefined })
                     });
 
                     const data = await response.json();
@@ -1890,9 +1890,16 @@ function initializeMainScreenEventListeners() {
 
                 currentRentalForExtension = rental; // Сохраняем аренду для модального окна
                 const t = rental.tariffs;
-                let exts = (t && t.extensions && t.extensions.length > 0)
-                    ? t.extensions
-                    : [{ days: t.duration_days, cost: t.price_rub }];
+                let exts = [];
+                if (t && t.extensions) {
+                    try {
+                        exts = typeof t.extensions === 'string' ? JSON.parse(t.extensions) : t.extensions;
+                    } catch (e) {
+                        exts = [{ days: t.duration_days, cost: t.price_rub }];
+                    }
+                } else {
+                    exts = [{ days: t.duration_days, cost: t.price_rub }];
+                }
 
                 buildExtendOptions(exts);
                 const modal = document.getElementById('extend-modal');
