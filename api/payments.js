@@ -214,7 +214,7 @@ async function handleCreatePayment(body) {
     if (clientData.yookassa_payment_method_id) {
         paymentData.payment_method_id = clientData.yookassa_payment_method_id;
     } else {
-        paymentData.confirmation = { type: 'redirect', return_url: 'https://go-go-b-ike.vercel.app/' };
+        paymentData.confirmation = { type: 'redirect', return_url: 'https://go-go-b-ike.vercel.app/?payment_success=true' };
     }
 
     const authString = Buffer.from(`${process.env.YOOKASSA_SHOP_ID}:${process.env.YOOKASSA_SECRET_KEY}`).toString('base64');

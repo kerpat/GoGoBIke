@@ -538,6 +538,23 @@
             <p style="text-align: center; color: var(--dark-green);">Заявка на сдачу принята. Автосписания остановлены. Ожидайте подтверждения администратора.</p>`;
     };
 
+    const renderAwaitingContractView = (rental, container) => {
+        container.innerHTML = `
+            <div class="bike-image-wrapper">
+                 <img src="bike-delivery.png" alt="Electric bike" class="bike-image" width="1536" height="1024">
+            </div>
+            <h2 style="text-align: center;">Аренда почти готова!</h2>
+            <p style="text-align: center; color: var(--dark-green); margin-bottom: 20px;">Осталось подписать договор. Это займет меньше минуты.</p>
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="window.location.href='profile.html#notifications'">Перейти к подписанию</button>
+            </div>
+        `;
+        // Также нужно подгрузить баланс и кол-во великов, если нужно
+        const balanceEl = document.getElementById('balance-amount');
+        if (balanceEl) balanceEl.textContent = formatBalance(userBalance);
+        // и т.д.
+    };
+
     const renderDefaultView = (container) => {
         document.querySelector('.app-header')?.classList.remove('header-centered');
         container.innerHTML = `
@@ -656,7 +673,7 @@ if (status === 'approved') {
         .from('rentals')
         .select('*, tariffs(*)')
         .eq('user_id', userId)
-        .in('status', ['active', 'overdue', 'pending_return'])
+        .in('status', ['active', 'overdue', 'pending_return', 'awaiting_contract_signing'])
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
@@ -669,6 +686,9 @@ if (status === 'approved') {
 
     if (rental) {
         switch(rental.status) {
+            case 'awaiting_contract_signing':
+                renderAwaitingContractView(rental, mainContent); // Показываем экран "Подпишите договор"
+                break;
             case 'active':
                 renderActiveRentalView(rental, mainContent);
                 break;
@@ -882,6 +902,26 @@ function initializeMainScreenEventListeners() {
         if (userName) {
             document.querySelector('.app-header h1').textContent = '';
         }
+
+        // +++ ДОБАВЬТЕ ЭТОТ БЛОК КОДА +++
+        // Проверяем, вернулся ли пользователь после успешной оплаты
+        const urlParams = new URLSearchParams(window.location.search);
+        const paymentSuccess = urlParams.get('payment_success');
+
+        if (paymentSuccess === 'true') {
+            // Показываем модальное окно с просьбой подписать договор
+            const promptModal = document.getElementById('post-rental-prompt-modal');
+            if (promptModal) {
+                promptModal.classList.remove('hidden');
+            }
+
+            // (Опционально, но рекомендуется) Очищаем URL, чтобы при перезагрузке
+            // страницы модальное окно не появилось снова.
+            // Это заменяет URL в истории браузера без перезагрузки страницы.
+            window.history.replaceState(null, '', window.location.pathname);
+        }
+        // --- КОНЕЦ НОВОГО БЛОКА ---
+
         const appScreen = document.querySelector('.app-screen');
         const navLinks = document.querySelectorAll('.bottom-nav a.nav-item');
         const animationDuration = 400;
