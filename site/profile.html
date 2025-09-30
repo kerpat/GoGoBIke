@@ -229,8 +229,8 @@
             border-color: var(--icon-green);
             background-color: var(--white);
         }
-        /* Контейнер для тарифов Prizmatic в настройках отображается или скрывается */
-        #prizmatic-tariff-options.hidden {
+        /* Контейнер для тарифов GoGoBike в настройках отображается или скрывается */
+        #GoGoBike-tariff-options.hidden {
             display: none;
         }
         /* Радиогруппы для выбора провайдера и тарифов */
@@ -247,13 +247,13 @@
             font-weight: 600;
             color: var(--dark-green);
         }
-        .prizmatic-tariff-group {
+        .GoGoBike-tariff-group {
             display: flex;
             flex-direction: column;
             gap: 8px;
             margin-top: 10px;
         }
-        .prizmatic-tariff-group label {
+        .GoGoBike-tariff-group label {
             display: flex;
             align-items: center;
             gap: 8px;
@@ -314,7 +314,7 @@
                     <svg class="menu-item-chevron" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </div>
                 <hr class="menu-divider">
-                <a href="https://t.me/PRIZMATIC_wello" target="_blank" class="menu-item">
+                <a href="https://t.me/GoGoBike_support" target="_blank" class="menu-item">
                     <div class="menu-item-left">
                         <svg class="menu-item-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                         <span class="menu-item-text">Написать в Telegram</span>
@@ -456,13 +456,13 @@
                         <span style="opacity: 0.5; cursor: not-allowed;">
                             <input type="radio" name="provider" value="qr" disabled> QR
                         </span>
-                        <!-- Опция Prizmatic выбрана по умолчанию и является единственной активной -->
-                        <label><input type="radio" name="provider" value="prizmatic" checked> Prizmatic</label>
+                        <!-- Опция GoGoBike выбрана по умолчанию и является единственной активной -->
+                        <label><input type="radio" name="provider" value="gogobike" checked> GoGoBike</label>
                     </div>
                 </div>
                 <!--
-                    Тарифы Prizmatic удалены из формы настроек оплаты по требованию: 
-                    пользователь выбирает провайдера (QR или Prizmatic) без выбора тарифа. 
+                    Тарифы GoGoBike удалены из формы настроек оплаты по требованию:
+                    пользователь выбирает провайдера (QR или GoGoBike) без выбора тарифа.
                     Выбор конкретного тарифа происходит непосредственно при аренде на главном экране.
                 -->
                 <button type="submit" class="btn btn-primary" style="margin-top: 10px;">Сохранить</button>
@@ -470,7 +470,7 @@
         </div>
     </div>
 
-    <!-- Главное меню Prizmatic -->
+    <!-- Главное меню GoGoBike -->
     <div id="main-menu-overlay" class="menu-overlay hidden" role="dialog" aria-modal="true">
         <div class="menu-container">
             <button id="main-menu-close-btn" class="menu-close-btn" aria-label="Закрыть меню">&times;</button>
@@ -1187,7 +1187,7 @@
             const savedCity = localStorage.getItem('selectedCity');
             if (savedCity && citySelect) citySelect.value = savedCity;
             
-            const savedProvider = localStorage.getItem('paymentProvider') || 'prizmatic';
+            const savedProvider = localStorage.getItem('paymentProvider') || 'GoGoBike';
             if (providerRadios) providerRadios.forEach(r => { r.checked = (r.value === savedProvider); });
         }
 
@@ -1199,7 +1199,7 @@
                 
                 localStorage.setItem('selectedCity', selectedCity);
                 localStorage.setItem('paymentProvider', provider);
-                localStorage.removeItem('prizmaticTariff'); 
+                localStorage.removeItem('GoGoBikeTariff'); 
                 
                 closeModal(document.getElementById('payment-settings-modal'));
             });

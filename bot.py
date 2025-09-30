@@ -108,8 +108,7 @@ def get_phone_keyboard() -> ReplyKeyboardMarkup:
 def get_city_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="🏙️ Москва", callback_data="city_msk"),
-            InlineKeyboardButton(text="🏙️ Санкт-Петербург", callback_data="city_spb")
+            InlineKeyboardButton(text="🏙️ Воронеж", callback_data="city_vrn")
         ]
     ])
 
@@ -192,7 +191,7 @@ async def start_handler(message: Message, state: FSMContext):
     ])
     await message.answer(
         f"👋 Здравствуйте, *{message.from_user.first_name or 'пользователь'}!*\n\n"
-        "Добро пожаловать в *Prizmatic* — сервис аренды электровелосипедов.\n\n"
+        "Добро пожаловать в *GoGoBike* — сервис аренды электровелосипедов.\n\n"
         "🚀 Нажмите кнопку ниже, чтобы открыть приложение и начать пользоваться сервисом.",
         parse_mode='Markdown',
         reply_markup=keyboard
@@ -306,10 +305,8 @@ async def process_birth_date(message: Message, state: FSMContext):
 @dp.callback_query(Reg.city, F.data.startswith("city_"))
 async def process_city_callback(callback: CallbackQuery, state: FSMContext):
     data = callback.data
-    if data == "city_msk":
-        city = "Москва"
-    elif data == "city_spb":
-        city = "Санкт-Петербург"
+    if data == "city_vrn":
+        city = "Воронеж"
     else:
         await callback.answer("❌ Неверный выбор.")
         return
@@ -647,7 +644,7 @@ async def process_video_note(message: Message, state: FSMContext):
                         "✅ *Регистрация завершена!*\n\n"
                         "🎊 Ваши данные приняты и отправлены на проверку.\n\n"
                         "📱 Вы можете в любой момент зайти в приложение и посмотреть там статус проверки, дозаполнить данные (если потребуется), подключить карту, написать в поддержку или пригласить друга.\n\n"
-                        "_Спасибо за доверие к Prizmatic!_",
+                        "_Спасибо за доверие к GoGoBike!_",
                         parse_mode='Markdown'
                     )
                     # Send video with app button

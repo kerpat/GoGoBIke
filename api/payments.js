@@ -242,7 +242,7 @@ async function handleSaveCard({ userId }) {
     if (!normalizedPhone) throw new Error(`Client ${userId} has no phone number for YooKassa receipts.`);
 
     const amount = 1.00; // Small amount for card verification
-    const description = 'Привязка карты для Prizmatic';
+    const description = 'Привязка карты для GoGoBike';
     const idempotenceKey = crypto.randomUUID();
 
     const paymentData = {
