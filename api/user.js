@@ -292,7 +292,7 @@ async function handleGetPaymentMethod({ userId }) {
         .single();
 
     if (clientError) throw new Error('Failed to get client data: ' + clientError.message);
-    
+
     const paymentMethodDetails = client?.extra?.payment_method_details;
 
     if (!paymentMethodDetails) {
@@ -300,6 +300,31 @@ async function handleGetPaymentMethod({ userId }) {
     }
 
     return { status: 200, body: { payment_method: paymentMethodDetails } };
+}
+
+async function handleUnbindPaymentMethod({ userId }) {
+    if (!userId) {
+        return { status: 400, body: { error: 'User ID is required' } };
+    }
+
+    const supabaseAdmin = createSupabaseAdmin();
+
+    // Просто зачищаем поля, связанные с YooKassa, у клиента
+    const { error } = await supabaseAdmin
+        .from('clients')
+        .update({
+            yookassa_payment_method_id: null,
+            autopay_enabled: false,
+            extra: {} // Очищаем поле extra, чтобы удалить детали карты
+        })
+        .eq('id', userId);
+
+    if (error) {
+        console.error('Error unbinding payment method:', error);
+        return { status: 500, body: { error: 'Failed to unbind payment method in database.' } };
+    }
+
+    return { status: 200, body: { success: true, message: 'Payment method successfully unbound.' } };
 }
 
 
@@ -336,6 +361,9 @@ async function handler(req, res) {
                 break;
             case 'get-payment-method':
                 result = await handleGetPaymentMethod(body);
+                break;
+            case 'unbind-payment-method':
+                result = await handleUnbindPaymentMethod(body);
                 break;
             default:
                 result = { status: 400, body: { error: 'Invalid action' } };
