@@ -172,7 +172,17 @@ async function handleCreatePayment(body) {
     const normalizedPhone = normalizePhone(clientData.phone);
     if (!normalizedPhone) throw new Error(`Client ${userId} has no phone number for YooKassa receipts.`);
 
-    const amount = amountFromClient ? Number.parseFloat(amountFromClient) : 3750.0;
+    let amount;
+    if (amountFromClient) {
+        amount = Number.parseFloat(amountFromClient);
+    } else if (tariffId) {
+        // Fetch tariff price if tariffId provided
+        const { data: tariffData, error: tariffError } = await supabase.from('tariffs').select('price_rub').eq('id', tariffId).single();
+        if (tariffError || !tariffData) throw new Error('Tariff not found.');
+        amount = tariffData.price_rub;
+    } else {
+        amount = 3750.0; // fallback
+    }
     if (!Number.isFinite(amount) || amount <= 0) {
         throw new Error('Invalid amount specified.');
     }
