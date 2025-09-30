@@ -1118,9 +1118,20 @@ function initializeMainScreenEventListeners() {
         }
 
         if (data.confirmation_url) {
+            // Случай 1: Карты нет, отправляем на страницу оплаты
             window.location.href = data.confirmation_url;
+        } else if (data.status === 'pending' || data.status === 'succeeded') {
+            // Случай 2: Карта есть, автоплатеж запущен.
+            // Просто показываем модалку "Подпишите договор" и ждем вебхук.
+            // Фронту больше ничего делать не надо.
+            console.log('Автоплатеж запущен. Статус:', data.status);
+            document.getElementById('post-rental-prompt-modal').classList.remove('hidden');
+            // Закрываем все остальные модалки на всякий случай
+            document.getElementById('tariff-detail-modal').classList.add('hidden');
+            document.getElementById('tariff-modal').classList.add('hidden');
         } else {
-            throw new Error('Не удалось получить ссылку на оплату.');
+            // Случай 3: Произошла какая-то другая неведомая хуйня.
+            throw new Error(data.error || 'Не удалось обработать платеж.');
         }
 
     } catch (error) {
@@ -1240,9 +1251,6 @@ function initializeMainScreenEventListeners() {
                 alert(`Ошибка оформления аренды: ${err.message}`);
             } finally {
                 if(rentBtn) toggleButtonLoading(rentBtn, false, 'Выбрать тариф', 'Обработка...');
-                // Закрываем все модальные окна
-                document.getElementById('tariff-detail-modal').classList.add('hidden');
-                document.getElementById('tariff-modal').classList.add('hidden');
             }
         };
 
