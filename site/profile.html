@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="config.js"></script>
     <title>Профиль - Bike App</title>
     <link rel="stylesheet" href="style.css?v=7.3">
     <link rel="stylesheet" href="blend.css">
@@ -491,14 +490,14 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
         <script>
-    const SUPABASE_URL = window.APP_CONFIG.SUPABASE_URL;
-    const SUPABASE_ANON_KEY = window.APP_CONFIG.SUPABASE_ANON_KEY;
+    const SUPABASE_URL = 'https://briulxpnjxlsgfgkqvfh.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyaXVseHBuanhsc2dmZ2txdmZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxNzUwNzEsImV4cCI6MjA3NDc1MTA3MX0.Zj-V22HQ2MlZJToC4ZzBcfqPtAVI8NAjb7TQMiJQU60';
     // We no longer use a global API_BASE_URL for all requests,
     // since they go to different servers.
     // const API_BASE_URL = 'https://gogobikedogovor.onrender.com';
 
     // Define a constant specifically for contract requests
-    const CONTRACTS_API_URL = window.APP_CONFIG.CONTRACTS_API_URL;
+    const CONTRACTS_API_URL = 'https://gogobikedogovor.onrender.com';
 
     document.addEventListener('DOMContentLoaded', () => {
         if (window.location.hash === '#support') {
@@ -533,7 +532,13 @@
             console.log("Приложение открыто не в Telegram или произошла ошибка:", error);
         }
         // --- КОНЕЦ НОВОГО КОДА ---
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+          realtime: {
+            params: {
+              eventsPerSecond: 10, // Это стандартное значение, можно оставить
+            },
+          },
+        });
 
         // --- ОБЩАЯ ЛОГИКА МОДАЛЬНЫХ ОКОН ---
         const modalTriggers = document.querySelectorAll('[data-modal-target]');
