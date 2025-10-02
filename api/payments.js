@@ -174,6 +174,11 @@ async function handleCreatePayment(body) {
     let amountToDebitFromBalance = 0;
     let successRedirectUrl;
 
+    // --- НАЧАЛО ИСПРАВЛЕНИЯ ---
+    // Объявляем переменную userBalance, которую я забыл в прошлый раз
+    const userBalance = clientData.balance_rub || 0;
+    // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
+
     // --- НАЧАЛО ИЗМЕНЕНИЙ ---
 
     if (type === 'renewal') { // <-- ЛОГИКА ДЛЯ ПРОДЛЕНИЯ
