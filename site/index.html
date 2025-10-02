@@ -20,20 +20,33 @@
     text-align: center;
 }
 
-/* === СТИЛИ ДЛЯ ОДНОСТРОЧНОГО СПИСКА АКБ (в виде карточки) === */
-.battery-info-line {
-    text-align: center;
-    font-size: 0.95rem;
-    color: var(--dark-green); /* Делаем текст номера тоже темным для читаемости */
-    margin: 10px 0 20px 0; /* Сохраняем внешние отступы */
-    padding: 12px 15px;      /* Добавляем внутренние отступы для объема */
-    line-height: 1.5;
-    background-color: var(--card-bg); /* <-- ДОБАВЛЯЕМ ФОН КАК У КАРТОЧКИ */
-    border-radius: 16px;             /* <-- ДОБАВЛЯЕМ СКРУГЛЕНИЕ */
+/* === СТИЛИ ДЛЯ ДВУХУРОВНЕВОГО СПИСКА АКБ === */
+
+/* 1. Внешний зеленый контейнер-карточка */
+.battery-info-container {
+    background-color: var(--card-bg); /* Светло-зеленый фон */
+    border-radius: 16px;
+    padding: 12px 15px;      /* Внутренние отступы, чтобы белая карточка не прилипала */
+    margin: 10px 0 20px 0;
+    display: flex;           /* Используем flexbox для центрирования */
+    justify-content: center; /* Центрируем белую карточку по горизонтали */
+    align-items: center;     /* И по вертикали */
 }
 
-.battery-info-line strong {
+/* 2. Внутренняя белая "таблетка" с номером */
+.battery-info-chip {
+    display: inline-block; /* <-- Ключевое свойство для динамической ширины */
+    background-color: #ffffff;
+    border-radius: 20px; /* Более сильное скругление для вида "таблетки" */
+    padding: 8px 16px;   /* Внутренние отступы для текста */
+    font-size: 0.95rem;
     color: var(--dark-green);
+    font-weight: 500;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05); /* Легкая тень для объема */
+    border: 1px solid var(--progress-bar-bg); /* Очень светлая рамка */
+}
+
+.battery-info-chip strong {
     font-weight: 600;
 }
     </style>
@@ -505,8 +518,8 @@
                 <img src="bike-delivery.png" alt="Rented Electric bike" class="bike-image" width="1536" height="1024" decoding="async" fetchpriority="high">
             </div>
 
-            <!-- НОВЫЙ, УПРОЩЕННЫЙ БЛОК АКБ -->
-            <div class="battery-info-line" id="rental-batteries-list-line"></div>
+            <!-- НОВЫЙ ДВУХУРОВНЕВЫЙ БЛОК АКБ -->
+            <div class="battery-info-container" id="rental-batteries-container"></div>
 
             <div class="progress-section">
                 <div class="progress-bar-container"><div class="progress-bar" style="width: ${progress}%; background-color: ${progressBarColor};"></div></div>
@@ -547,29 +560,28 @@
             </div>
         `;
 
-        // ЗАГРУЖАЕМ И ОТОБРАЖАЕМ АККУМУЛЯТОРЫ В ОДНУ СТРОКУ
+        // ЗАГРУЖАЕМ И ОТОБРАЖАЕМ АККУМУЛЯТОРЫ (ДВУХУРОВНЕВЫЙ ДИЗАЙН)
         try {
             const { data: batteries, error } = await supabase
                 .from('rental_batteries')
                 .select('batteries(serial_number)')
                 .eq('rental_id', rental.id);
 
-            const batteryLine = document.getElementById('rental-batteries-list-line');
-            if (batteryLine) {
+            const batteryContainer = document.getElementById('rental-batteries-container');
+            if (batteryContainer) {
                 if (batteries && batteries.length > 0) {
-                    // Собираем все серийные номера в одну строку через запятую
                     const serialNumbers = batteries.map(rb => rb.batteries.serial_number).join(', ');
-                    batteryLine.innerHTML = `<strong>АКБ:</strong> ${serialNumbers}`;
+                    // Создаем HTML с вложенным элементом span
+                    batteryContainer.innerHTML = `<span class="battery-info-chip"><strong>АКБ:</strong> ${serialNumbers}</span>`;
                 } else {
-                    // Если АКБ нет, показываем placeholder
-                    batteryLine.innerHTML = '<strong>АКБ:</strong> Информация недоступна';
+                    batteryContainer.innerHTML = `<span class="battery-info-chip"><strong>АКБ:</strong> Информация недоступна</span>`;
                 }
             }
         } catch (err) {
             console.error('Не удалось загрузить список аккумуляторов:', err);
-            const batteryLine = document.getElementById('rental-batteries-list-line');
-            if (batteryLine) {
-                batteryLine.innerHTML = '<strong>АКБ:</strong> Ошибка загрузки';
+            const batteryContainer = document.getElementById('rental-batteries-container');
+            if (batteryContainer) {
+                batteryContainer.innerHTML = `<span class="battery-info-chip"><strong>АКБ:</strong> Ошибка загрузки</span>`;
             }
         }
 
