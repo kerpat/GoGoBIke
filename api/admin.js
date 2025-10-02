@@ -147,14 +147,14 @@ async function handleAssignBike({ rental_id, bike_id }) {
         const clientUuid = rentalData.user_id;
         console.log(`[2/3] Найден UUID клиента: ${clientUuid}`);
 
-        console.log(`[3/3] Получение Telegram ID из поля extra...`);
+        console.log(`[3/3] Получение Telegram ID...`);
         const { data: clientData, error: clientError } = await supabaseAdmin
             .from('clients')
-            .select('extra')
+            .select('telegram_user_id')
             .eq('id', clientUuid)
             .single();
-        
-        const telegramUserId = clientData?.extra?.telegram_user_id;
+
+        const telegramUserId = clientData?.telegram_user_id;
 
         if (clientError || !telegramUserId) {
             console.error('Не удалось найти клиента или telegram_user_id внутри поля extra:', clientError);
@@ -523,15 +523,19 @@ async function handleFinalizeReturn({ rental_id, new_bike_status, service_reason
 
     // 4. Send notification to user
     try {
-        const { data: clientData } = await supabaseAdmin
+        const { data: clientData, error: clientError } = await supabaseAdmin
             .from('clients')
-            .select('extra')
+            .select('telegram_user_id')
             .eq('id', rental.user_id)
             .single();
-        
-        const telegramUserId = clientData?.extra?.telegram_user_id;
+
+        if (clientError) throw clientError;
+
+        const telegramUserId = clientData?.telegram_user_id;
         if (telegramUserId) {
             await sendTelegramMessage(telegramUserId, `✅ Ваша аренда #${rental_id} завершена. Перейдите в личный кабинет → Уведомления и подпишите акт сдачи велосипеда.`);
+        } else {
+            console.warn(`Уведомление не отправлено: не найден telegram_user_id для клиента ${rental.user_id}`);
         }
     } catch (notifyError) {
         console.error('Failed to send finalization notification:', notifyError.message);
@@ -641,7 +645,7 @@ async function handleNotifyBatteryAssignment({ rentalId }) {
     try {
         const { data: rental, error } = await supabaseAdmin
             .from('rentals')
-            .select('user_id, clients(extra)')
+            .select('user_id, clients(telegram_user_id)')
             .eq('id', rentalId)
             .single();
 
@@ -650,7 +654,7 @@ async function handleNotifyBatteryAssignment({ rentalId }) {
             return { status: 404, body: { error: 'Аренда не найдена.' } };
         }
 
-        const telegramUserId = rental?.clients?.extra?.telegram_user_id;
+        const telegramUserId = rental?.clients?.telegram_user_id;
 
         if (!telegramUserId) {
             console.warn(`Telegram ID не найден для аренды ${rentalId}`);
