@@ -1,5 +1,6 @@
 
 const { createClient } = require('@supabase/supabase-js');
+const crypto = require('crypto');
 
 function createSupabaseAdmin() {
     if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -25,8 +26,9 @@ async function processSucceededPayment(notification) {
     console.log('--- НАЧАЛО ОБРАБОТКИ УСПЕШНОГО ПЛАТЕЖА (v3) ---');
     const payment = notification.object;
     const metadata = payment.metadata || {};
-    const { userId, tariffId, payment_type } = metadata; // Добавили payment_type
-    const paymentAmount = Number.parseFloat(payment.amount?.value ?? '0');
+    const { userId, tariffId, payment_type, debit_from_balance } = metadata; // Добавили debit_from_balance
+    const cardPaymentAmount = Number.parseFloat(payment.amount?.value ?? '0'); // Сумма, пришедшая с карты (3000 ₽)
+    const amountToDebit = Number.parseFloat(debit_from_balance) || 0;       // Сумма для списания с баланса (750 ₽)
     const yookassaPaymentId = payment.id;
 
     const supabaseAdmin = createSupabaseAdmin();
@@ -67,10 +69,33 @@ async function processSucceededPayment(notification) {
 
     // --- Логика для аренды (если есть tariffId) ---
     if (tariffId) {
-        console.log(`[АРЕНДА] userId: ${userId}, tariffId: ${tariffId}`);
+        console.log(`[АРЕНДА-ГИБРИД] userId: ${userId}, с карты: ${cardPaymentAmount}, с баланса: ${amountToDebit}`);
 
-        // 1. Найти случайный свободный велосипед с нужным тарифом
-        console.log(`[АРЕНДА] Поиск свободного велосипеда для тарифа ${tariffId}...`);
+        // 1. СПИСЫВАЕМ СРЕДСТВА С БАЛАНСА (ЕСЛИ НУЖНО)
+        if (amountToDebit > 0) {
+            const { error: balanceError } = await supabaseAdmin.rpc('add_to_balance', {
+                client_id_to_update: userId,
+                amount_to_add: -amountToDebit // Списываем, поэтому отрицательное значение
+            });
+
+            if (balanceError) {
+                // КРИТИЧЕСКАЯ СИТУАЦИЯ: деньги с карты списались, а с баланса нет.
+                // Нужно инициировать возврат и уведомить поддержку.
+                console.error(`[КРИТИЧЕСКАЯ ОШИБКА] Не удалось списать с баланса ${amountToDebit} для userId ${userId} ПОСЛЕ оплаты картой. Инициирую возврат.`);
+                // ... код для возврата платежа через API YooKassa ...
+                const auth = Buffer.from(`${process.env.YOOKASSA_SHOP_ID}:${process.env.YOOKASSA_SECRET_KEY}`).toString('base64');
+                await fetch('https://api.yookassa.ru/v3/refunds', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${auth}`, 'Idempotence-Key': crypto.randomUUID() },
+                    body: JSON.stringify({ payment_id: yookassaPaymentId, amount: { value: cardPaymentAmount.toFixed(2), currency: 'RUB' }, description: 'Ошибка списания с баланса' })
+                });
+                throw new Error('Failed to debit from balance after card payment.');
+            }
+            console.log(`[АРЕНДА-ГИБРИД] Успешно списано с баланса ${amountToDebit} ₽ для userId ${userId}`);
+        }
+
+        // 2. Найти случайный свободный велосипед с нужным тарифом
+        console.log(`[АРЕНДА-ГИБРИД] Поиск свободного велосипеда для тарифа ${tariffId}...`);
         const { data: availableBikes, error: bikesError } = await supabaseAdmin
             .from('bikes')
             .select('id')
@@ -86,7 +111,7 @@ async function processSucceededPayment(notification) {
             await fetch('https://api.yookassa.ru/v3/refunds', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${auth}`, 'Idempotence-Key': crypto.randomUUID() },
-                body: JSON.stringify({ payment_id: yookassaPaymentId, amount: { value: paymentAmount.toFixed(2), currency: 'RUB' }, description: 'Нет свободных велосипедов' })
+                body: JSON.stringify({ payment_id: yookassaPaymentId, amount: { value: cardPaymentAmount.toFixed(2), currency: 'RUB' }, description: 'Нет свободных велосипедов' })
             });
             // Отправляем уведомление пользователю
             const { data: client } = await supabaseAdmin.from('clients').select('extra').eq('id', userId).single();
@@ -98,18 +123,21 @@ async function processSucceededPayment(notification) {
 
         const randomBike = availableBikes[Math.floor(Math.random() * availableBikes.length)];
         const bikeId = randomBike.id;
-        console.log(`[АРЕНДА] Найден и выбран велосипед #${bikeId}`);
+        console.log(`[АРЕНДА-ГИБРИД] Найден и выбран велосипед #${bikeId}`);
 
-        // 2. Обновить статус велосипеда на 'rented'
+        // 3. Обновить статус велосипеда на 'rented'
         const { error: bikeUpdateError } = await supabaseAdmin.from('bikes').update({ status: 'rented' }).eq('id', bikeId);
         if (bikeUpdateError) throw new Error(`Не удалось обновить статус велосипеда #${bikeId}: ${bikeUpdateError.message}`);
-        console.log(`[АРЕНДА] Статус велосипеда #${bikeId} обновлен на 'rented'.`);
+        console.log(`[АРЕНДА-ГИБРИД] Статус велосипеда #${bikeId} обновлен на 'rented'.`);
 
-        // 3. Создать запись об аренде со статусом 'awaiting_contract_signing'
+        // 4. Создать запись об аренде со статусом 'awaiting_contract_signing'
         const { data: tariffData } = await supabaseAdmin.from('tariffs').select('duration_days').eq('id', tariffId).single();
         const startDate = new Date();
         const endDate = new Date();
         endDate.setDate(startDate.getDate() + (tariffData?.duration_days || 7));
+
+        // 5. СОЗДАЕМ АРЕНДУ С ПОЛНОЙ СТОИМОСТЬЮ
+        const totalPaid = cardPaymentAmount + amountToDebit; // 3000 + 750 = 3750
 
         const { data: newRental, error: rentalError } = await supabaseAdmin
             .from('rentals')
@@ -120,7 +148,7 @@ async function processSucceededPayment(notification) {
                 starts_at: startDate.toISOString(),
                 current_period_ends_at: endDate.toISOString(),
                 status: 'awaiting_battery_assignment', // Статус ожидания выбора АКБ
-                total_paid_rub: paymentAmount
+                total_paid_rub: totalPaid // Записываем полную стоимость тарифа
             })
             .select('id')
             .single();
@@ -130,20 +158,32 @@ async function processSucceededPayment(notification) {
             await supabaseAdmin.from('bikes').update({ status: 'available' }).eq('id', bikeId);
             throw new Error(`Не удалось создать аренду: ${rentalError.message}`);
         }
-        console.log(`[АРЕНДА] Создана аренда #${newRental.id} со статусом 'awaiting_battery_assignment'.`);
+        console.log(`[АРЕНДА-ГИБРИД] Создана аренда #${newRental.id} со статусом 'awaiting_battery_assignment'.`);
 
-        // 4. Записать платеж в историю
-        const { error: paymentError } = await supabaseAdmin.from('payments').insert({
+        // 6. ЗАПИСЫВАЕМ ПЛАТЕЖИ В ИСТОРИЮ (ДВЕ ТРАНЗАКЦИИ)
+        // Первая - от YooKassa
+        await supabaseAdmin.from('payments').insert({
             client_id: userId,
             rental_id: newRental.id,
-            amount_rub: paymentAmount,
+            amount_rub: cardPaymentAmount, // 3000
             status: 'succeeded',
-            payment_type: 'initial',
+            payment_type: 'initial_card_part', // Более точный тип
             yookassa_payment_id: yookassaPaymentId
         });
-        if (paymentError) throw new Error(`Не удалось записать платеж: ${paymentError.message}`);
 
-        console.log(`[АРЕНДА] Платеж ${yookassaPaymentId} успешно обработан и связан с арендой #${newRental.id}.`);
+        // Вторая - с внутреннего баланса
+        if (amountToDebit > 0) {
+            await supabaseAdmin.from('payments').insert({
+                client_id: userId,
+                rental_id: newRental.id,
+                amount_rub: amountToDebit, // 750
+                status: 'succeeded',
+                payment_type: 'initial_balance_part', // Более точный тип
+                description: 'Частичная оплата аренды с баланса'
+            });
+        }
+
+        console.log(`[АРЕНДА-ГИБРИД] Аренда #${newRental.id} успешно создана.`);
         return; // Завершаем после обработки аренды
     }
 
