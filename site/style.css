@@ -366,8 +366,34 @@ body.tg-webapp .app-main h2,
   background-color: #f5a623;
 }
 
-.history-icon-wrapper.topup {
+.history-icon-wrapper.topup,
+.history-icon-wrapper.top-up {
   background-color: #23a2f5; /* Синий цвет для пополнений */
+}
+
+.history-icon-wrapper.rental,
+.history-icon-wrapper.initial {
+  background-color: var(--icon-green); /* Зеленый для аренды */
+}
+
+.history-icon-wrapper.renewal {
+  background-color: #7c3aed; /* Фиолетовый для продления */
+}
+
+.history-icon-wrapper.booking {
+  background-color: #f59e0b; /* Оранжевый для бронирования */
+}
+
+.history-icon-wrapper.balance_debit {
+  background-color: #ef4444; /* Красный для списания */
+}
+
+.history-icon-wrapper.refund_to_balance {
+  background-color: #10b981; /* Зеленый для возврата */
+}
+
+.history-icon-wrapper.adjustment {
+  background-color: #6b7280; /* Серый для корректировки */
 }
 
 .history-icon-wrapper svg {
