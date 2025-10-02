@@ -386,8 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             rental: {
                 'active': { text: 'Активна', className: 'status-success' },
-                'awaiting_battery_assignment': { text: 'Ожидает АКБ', className: 'status-warning' }, // <-- ДОБАВЛЕНА НОВАЯ СТРОКА
-                'awaiting_contract_signing': { text: 'Ожидает подписания', className: 'status-warning' }, // <-- ВОЗВРАЩЕН СТАРЫЙ ТЕКСТ
+                'awaiting_contract_signing': { text: 'Ожидает АКБ', className: 'status-warning' }, // <-- ИЗМЕНЕН ТЕКСТ
                 'completed_by_admin': { text: 'Завершено админом', className: 'status-info' },
                 'pending_assignment': { text: 'Ожидает велосипед', className: 'status-warning' },
                 'pending_return': { text: 'Ожидает сдачи', className: 'status-warning' },
@@ -2111,7 +2110,7 @@ clientsTableBody.addEventListener('click', async (e) => {
                 .from('rentals')
                 .select('id, created_at, user_id, tariff_id, status, clients(name), tariffs(title)')
                 // ИЗМЕНЕНИЕ: Ищем новый статус для выбора АКБ
-                .in('status', ['pending_assignment', 'awaiting_battery_assignment', 'pending_return'])
+                .in('status', ['pending_assignment', 'awaiting_contract_signing', 'pending_return'])
                 .order('created_at', { ascending: true });
 
             if (error) throw error;
@@ -2129,7 +2128,7 @@ clientsTableBody.addEventListener('click', async (e) => {
                 // ИЗМЕНЕНИЕ: Разная логика для разных статусов
                 if (assignment.status === 'pending_return') {
                     actionButton = `<button class="btn btn-primary process-return-btn" data-rental-id="${assignment.id}">Принять</button>`;
-                } else if (assignment.status === 'awaiting_battery_assignment') { // <-- ВОТ НОВЫЙ СТАТУС
+                } else if (assignment.status === 'awaiting_contract_signing') { // <-- ВОТ НОВЫЙ СТАТУС
                     actionButton = `<button class="btn btn-primary assign-batteries-btn" data-rental-id="${assignment.id}">Выбрать АКБ</button>`;
                 } else { // 'pending_assignment'
                     actionButton = `<button class="btn btn-primary assign-bike-btn" data-rental-id="${assignment.id}">Привязать вел.</button>`;
