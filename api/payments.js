@@ -184,7 +184,7 @@ async function handleCreatePayment(body) {
 
     if (type === 'renewal') {
         paymentMetadata.payment_type = 'renewal'; // Явно указываем тип
-        successRedirectUrl = 'https://go-go-b-ike.vercel.app/?rental_success=true';
+        successRedirectUrl = 'https://go-go-b-ike.vercel.app/?renewal_success=true';
         description = `Продление аренды`;
         const renewalCost = Number.parseFloat(amountFromClient);
 
