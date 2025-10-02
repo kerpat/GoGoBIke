@@ -162,7 +162,7 @@ async function handleChargeFromBalance({ userId, tariffId, bikeCode, amount, day
 }
 
 async function handleCreatePayment(body) {
-    const { userId, tariffId, amount: amountFromClient, type, rentalId, return_url, bikeCode, days } = body; // Добавил `days`
+    const { userId, tariffId, amount: amountFromClient, type, rentalId, return_url, bikeCode, days } = body;
     if (!userId) throw new Error('Client ID (userId) is required.');
 
     const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -170,22 +170,15 @@ async function handleCreatePayment(body) {
     if (clientError || !clientData) throw new Error(`Client not found.`);
 
     let amount;
-    let description = 'Пополнение баланса GoGoBike';
+    let description;
     let amountToDebitFromBalance = 0;
     let successRedirectUrl;
 
-    if (tariffId) {
-        // --- СЦЕНАРИЙ АРЕНДЫ ---
-        successRedirectUrl = return_url || 'https://go-go-b-ike.vercel.app/?rental_success=true';
-
-        // <<< ИЗМЕНЕНИЕ 1: ПОЛУЧАЕМ ЦЕНУ ТАРИФА ПРЯМО ЗДЕСЬ >>>
-        const { data: tariffData, error: tariffError } = await supabaseAdmin.from('tariffs').select('price_rub').eq('id', tariffId).single();
-        if (tariffError || !tariffData) throw new Error('Tariff not found.');
-
-        // <<< ИЗМЕНЕНИЕ 2: ИСПОЛЬЗУЕМ ЦЕНУ ИЗ БАЗЫ, А НЕ ОТ КЛИЕНТА >>>
-        const tariffCost = tariffData.price_rub;
+    if (tariffId && amountFromClient) { // <-- ЭТО АРЕНДА
+        successRedirectUrl = 'https://go-go-b-ike.vercel.app/?rental_success=true';
+        const tariffCost = Number.parseFloat(amountFromClient);
         const userBalance = clientData.balance_rub || 0;
-        description = `Аренда велосипеда по тарифу`;
+        description = `Аренда велосипеда`;
 
         if (userBalance >= tariffCost) {
             throw new Error('Balance is sufficient. Use charge-from-balance endpoint.');
@@ -195,86 +188,61 @@ async function handleCreatePayment(body) {
         } else {
             amount = tariffCost;
         }
-    } else {
-        // --- СЦЕНАРИЙ ОБЫЧНОГО ПОПОЛНЕНИЯ ---
-        successRedirectUrl = return_url || 'https://go-go-b-ike.vercel.app/?topup_success=true';
-        if (!amountFromClient || amountFromClient <= 0) {
-            throw new Error('Invalid amount specified for top-up.');
-        }
+    } else if (amountFromClient) { // <-- ЭТО ПОПОЛНЕНИЕ
+        successRedirectUrl = 'https://go-go-b-ike.vercel.app/?topup_success=true';
+        description = 'Пополнение баланса GoGoBike';
         amount = Number.parseFloat(amountFromClient);
+    } else {
+        throw new Error('Invalid request: amount or tariffId is missing.');
     }
 
-    if (!Number.isFinite(amount) || amount <= 0) {
-        throw new Error('Invalid final amount for payment.');
-    }
+    if (!Number.isFinite(amount) || amount <= 0) throw new Error('Invalid final amount for payment.');
 
-    // <<< НАЧАЛО ИСПРАВЛЕНИЯ: ВОЗВРАЩАЕМ ЭТОТ БЛОК НА МЕСТО >>>
     const normalizedPhone = normalizePhone(clientData.phone);
-    if (!normalizedPhone) {
-        throw new Error(`Client ${userId} has no phone number for YooKassa receipts.`);
-    }
-    // <<< КОНЕЦ ИСПРАВЛЕНИЯ >>>
+    if (!normalizedPhone) throw new Error(`Client ${userId} has no phone number for receipts.`);
 
-    if (bikeCode) description = `Bike rental payment #${bikeCode}`;
-    if (body.type === 'renewal') description = `Продление аренды #${body.rentalId}`;
     const idempotenceKey = crypto.randomUUID();
-
     const paymentData = {
         amount: { value: amount.toFixed(2), currency: 'RUB' },
         capture: true,
         description,
         metadata: {
-            userId,
-            tariffId,
-            bikeCode,
-            payment_type: type || (tariffId ? 'rental' : 'top-up'), // Определяем тип
-            rentalId,
-            days: body.days,
-            debit_from_balance: amountToDebitFromBalance // Будет 0 для обычных пополнений
+            userId, tariffId, bikeCode,
+            payment_type: type || (tariffId ? 'rental' : 'top-up'),
+            rentalId, days,
+            debit_from_balance: amountToDebitFromBalance
         },
         save_payment_method: true,
         receipt: {
             customer: { phone: normalizedPhone },
-            items: [{
-                description,
-                quantity: '1.00',
-                amount: { value: amount.toFixed(2), currency: 'RUB' },
-                vat_code: '1',
-                payment_mode: 'full_payment',
-                payment_subject: 'service'
-            }]
-        }
+            items: [{ description, quantity: '1.00', amount: { value: amount.toFixed(2), currency: 'RUB' }, vat_code: '1', payment_mode: 'full_payment', payment_subject: 'service' }]
+        },
     };
 
     if (clientData.yookassa_payment_method_id) {
         paymentData.payment_method_id = clientData.yookassa_payment_method_id;
     } else {
-        // Используем либо переданный URL, либо наш новый динамический URL
         paymentData.confirmation = { type: 'redirect', return_url: return_url || successRedirectUrl };
     }
 
     const authString = Buffer.from(`${process.env.YOOKASSA_SHOP_ID}:${process.env.YOOKASSA_SECRET_KEY}`).toString('base64');
     const response = await fetch('https://api.yookassa.ru/v3/payments', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Idempotence-Key': idempotenceKey,
-            'Authorization': `Basic ${authString}`
-        },
+        headers: { 'Content-Type': 'application/json', 'Idempotence-Key': idempotenceKey, 'Authorization': `Basic ${authString}` },
         body: JSON.stringify(paymentData)
     });
 
     const paymentResult = await response.json();
     if (!response.ok) {
         console.error('YooKassa API Error:', paymentResult);
-        throw new Error(`YooKassa error: ${paymentResult.description || 'Unknown error'}`);
+        throw new Error(paymentResult.description || 'Unknown YooKassa error');
     }
 
-    if (clientData.yookassa_payment_method_id) {
-        return { status: 200, body: { status: paymentResult.status, message: 'Payment processed with saved method.' } };
+    if (paymentResult.confirmation) {
+        return { status: 200, body: { confirmation_url: paymentResult.confirmation.confirmation_url } };
+    } else {
+        return { status: 200, body: { status: paymentResult.status } };
     }
-
-    return { status: 200, body: { confirmation_url: paymentResult.confirmation?.confirmation_url } };
 }
 
 async function handleSaveCard({ userId }) {
