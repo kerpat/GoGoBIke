@@ -1875,10 +1875,122 @@ select:focus::placeholder {
 /* 1. Убираем min-width для колонки действий в таблице бронирований */
 #bookings-table th:last-child,
 #bookings-table td:last-child {
-  /* Убираем min-width и width, чтобы ширина подстраивалась под контент */
+  width: auto;
 }
 
 /* 2. Делаем кнопки в таблице бронирований одинакового размера */
 #bookings-table .table-actions .btn {
   flex: 1; /* Кнопки делят место поровну */
+}
+/* 
+Step-by-step return process styles */
+.step-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.step-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e0e0e0;
+  color: #999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.step-circle.active {
+  background: var(--primary-green);
+  color: white;
+  box-shadow: 0 2px 8px rgba(38, 185, 153, 0.3);
+}
+
+.step-circle.completed {
+  background: var(--icon-green);
+  color: white;
+}
+
+.step-label {
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+  max-width: 100px;
+}
+
+.step-indicator.active .step-label {
+  color: var(--primary-green);
+  font-weight: 600;
+}
+
+.return-step {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Radio card styles */
+.radio-card {
+  display: block;
+  padding: 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.radio-card:hover {
+  border-color: var(--primary-green);
+  background: #f8fffe;
+}
+
+.radio-card input[type="radio"] {
+  display: none;
+}
+
+.radio-card input[type="radio"]:checked + .radio-card-content {
+  color: var(--primary-green);
+}
+
+.radio-card:has(input[type="radio"]:checked) {
+  border-color: var(--primary-green);
+  background: #f0fdf9;
+  box-shadow: 0 2px 8px rgba(38, 185, 153, 0.15);
+}
+
+.radio-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.radio-card-content strong {
+  font-size: 15px;
+  color: var(--dark-green);
+}
+
+.radio-card-content span {
+  font-size: 13px;
+  color: #666;
+}
+
+.radio-card:has(input[type="radio"]:checked) .radio-card-content strong {
+  color: var(--primary-green);
 }

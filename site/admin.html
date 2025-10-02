@@ -690,37 +690,107 @@
     </div>
   </div>
 
-  <!-- New Modal for Return Processing -->
+  <!-- New Modal for Return Processing (Step-by-Step) -->
   <div id="return-process-modal" class="overlay hidden">
-    <div class="modal" style="max-width: 600px;">
+    <div class="modal" style="max-width: 650px;">
       <div class="modal-header">
-        <h3>Приемка велосипеда</h3>
+        <h3 id="return-modal-title">Приемка велосипеда</h3>
         <button id="return-process-close-btn" class="close-btn">&times;</button>
       </div>
       <div class="modal-body">
         <input type="hidden" id="return-process-rental-id">
-        <div class="form-group">
-          <label for="return-defects">Выявленные неисправности (каждая с новой строки)</label>
-          <textarea id="return-defects" class="form-control" rows="4" placeholder="Пример: Царапина на раме
-Сломан звонок"></textarea>
-        </div>
-        <hr style="margin: 20px 0;">
-        <div class="form-group">
-          <label>Дальнейший статус велосипеда</label>
-          <div style="display: flex; gap: 20px;">
-            <label><input type="radio" name="bike-next-status" value="available" checked> Свободен</label>
-            <label><input type="radio" name="bike-next-status" value="in_service"> В ремонт</label>
+        
+        <!-- Индикатор шагов -->
+        <div style="display: flex; justify-content: space-between; margin-bottom: 25px; position: relative;">
+          <div style="position: absolute; top: 15px; left: 0; right: 0; height: 2px; background: #e0e0e0; z-index: 0;"></div>
+          <div class="step-indicator" data-step="1">
+            <div class="step-circle active">1</div>
+            <div class="step-label">Статус велосипеда</div>
+          </div>
+          <div class="step-indicator" data-step="2">
+            <div class="step-circle">2</div>
+            <div class="step-label">Недостатки</div>
+          </div>
+          <div class="step-indicator" data-step="3">
+            <div class="step-circle">3</div>
+            <div class="step-label">Счет за ущерб</div>
           </div>
         </div>
-        <div class="form-group hidden" id="service-reason-group">
-          <label for="service-reason">Причина ремонта</label>
-          <input type="text" id="service-reason" class="form-control" placeholder="Пример: Замена тормозных колодок">
+
+        <!-- Шаг 1: Выбор статуса велосипеда -->
+        <div id="return-step-1" class="return-step">
+          <h4 style="margin-bottom: 15px;">Куда отправить велосипед?</h4>
+          <div class="form-group">
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <label class="radio-card">
+                <input type="radio" name="bike-next-status" value="available" checked>
+                <div class="radio-card-content">
+                  <strong>✅ В свободные</strong>
+                  <span>Велосипед в хорошем состоянии, готов к аренде</span>
+                </div>
+              </label>
+              <label class="radio-card">
+                <input type="radio" name="bike-next-status" value="in_service">
+                <div class="radio-card-content">
+                  <strong>🔧 В ремонт</strong>
+                  <span>Требуется обслуживание или ремонт</span>
+                </div>
+              </label>
+            </div>
+          </div>
+          <div class="form-group hidden" id="service-reason-group" style="margin-top: 15px;">
+            <label for="service-reason">Причина ремонта</label>
+            <input type="text" id="service-reason" class="form-control" placeholder="Пример: Замена тормозных колодок">
+          </div>
         </div>
+
+        <!-- Шаг 2: Недостатки -->
+        <div id="return-step-2" class="return-step hidden">
+          <h4 style="margin-bottom: 15px;">Выявленные недостатки</h4>
+          <div class="form-group">
+            <label for="return-defects">Укажите все обнаруженные недостатки (каждый с новой строки)</label>
+            <textarea id="return-defects" class="form-control" rows="6" placeholder="Пример:
+Царапина на раме (левая сторона)
+Сломан звонок
+Потертость на седле"></textarea>
+            <small style="color: #666; margin-top: 5px; display: block;">Эти данные будут добавлены в акт приема-передачи</small>
+          </div>
+        </div>
+
+        <!-- Шаг 3: Счет за ущерб -->
+        <div id="return-step-3" class="return-step hidden">
+          <h4 style="margin-bottom: 15px;">Выставить счет за ущерб?</h4>
+          <div class="form-group">
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <label class="radio-card">
+                <input type="radio" name="charge-damage" value="no" checked>
+                <div class="radio-card-content">
+                  <strong>❌ Нет</strong>
+                  <span>Завершить приемку без выставления счета</span>
+                </div>
+              </label>
+              <label class="radio-card">
+                <input type="radio" name="charge-damage" value="yes">
+                <div class="radio-card-content">
+                  <strong>💰 Да, выставить счет</strong>
+                  <span>Списать сумму за повреждения</span>
+                </div>
+              </label>
+            </div>
+          </div>
+          <div class="form-group hidden" id="damage-amount-group" style="margin-top: 15px;">
+            <label for="damage-amount">Сумма к списанию (₽)</label>
+            <input type="number" id="damage-amount" class="form-control" placeholder="Например: 5000" min="0" step="100">
+            <label for="damage-description" style="margin-top: 10px;">Описание</label>
+            <input type="text" id="damage-description" class="form-control" placeholder="Например: Ремонт поврежденной рамы">
+          </div>
+        </div>
+
       </div>
       <div class="modal-footer">
-        <button type="button" id="issue-invoice-after-return-btn" class="btn btn-secondary">Выставить счет за
-          ущерб</button>
-        <button type="button" id="finalize-return-btn" class="btn btn-primary">Завершить приемку</button>
+        <button type="button" id="return-prev-btn" class="btn btn-secondary hidden">← Назад</button>
+        <button type="button" id="return-next-btn" class="btn btn-primary">Далее →</button>
+        <button type="button" id="finalize-return-btn" class="btn btn-primary hidden">Завершить приемку</button>
       </div>
     </div>
   </div>

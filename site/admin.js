@@ -1453,7 +1453,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     .eq('id', clientId);
 
                 if (error) throw error;
-        
+
                 // --- ВОТ ЭТУ СТРОЧКУ НУЖНО ДОБАВИТЬ ---
                 // Отправляем запрос на сервер, чтобы он послал уведомление
                 authedFetch('/api/admin', {
@@ -1462,7 +1462,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify({ action: 'notify-verification', userId: clientId, status: newStatus })
                 });
                 // --- КОНЕЦ ДОБАВЛЕНИЯ ---
-        
+
                 alert('Статус клиента успешно обновлен!');
                 loadClients(); // Перезагружаем список, чтобы увидеть изменения
             } catch (err) {
@@ -1546,9 +1546,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>
                         <div>Велосипед: ${r.bike_id || '—'}</div>
                         ${r.rental_batteries && r.rental_batteries.length > 0
-                            ? `<small style="color: #666;">АКБ: ${r.rental_batteries.map(rb => rb.batteries.serial_number).join(', ')}</small>`
-                            : ''
-                        }
+                        ? `<small style="color: #666;">АКБ: ${r.rental_batteries.map(rb => rb.batteries.serial_number).join(', ')}</small>`
+                        : ''
+                    }
                     </td>
                     <td>${start}</td>
                     <td>${end}</td>
@@ -1751,7 +1751,7 @@ document.addEventListener('DOMContentLoaded', () => {
             (data || []).forEach(p => {
                 // Get payment type label
                 const typeLabel = paymentTypeLabels[p.payment_type] || p.payment_type || '—';
-                
+
                 // Get payment method label
                 const methodLabel = paymentMethodLabels[p.method] || p.method || '—';
 
@@ -1767,7 +1767,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Make row clickable to show details
                 tr.style.cursor = 'pointer';
                 tr.dataset.paymentId = p.id;
-                
+
                 // Store payment data for modal
                 tr.dataset.paymentData = JSON.stringify({
                     id: p.id,
@@ -2898,7 +2898,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- New Return Processing Logic ---
+    // --- New Step-by-Step Return Processing Logic ---
     const returnProcessModal = document.getElementById('return-process-modal');
     if (returnProcessModal) {
         const returnProcessCloseBtn = document.getElementById('return-process-close-btn');
@@ -2907,17 +2907,104 @@ document.addEventListener('DOMContentLoaded', () => {
         const bikeNextStatusRadios = document.querySelectorAll('input[name="bike-next-status"]');
         const serviceReasonGroup = document.getElementById('service-reason-group');
         const serviceReasonInput = document.getElementById('service-reason');
-        const issueInvoiceAfterReturnBtn = document.getElementById('issue-invoice-after-return-btn');
         const finalizeReturnBtn = document.getElementById('finalize-return-btn');
 
+        // Step navigation elements
+        const returnPrevBtn = document.getElementById('return-prev-btn');
+        const returnNextBtn = document.getElementById('return-next-btn');
+        const returnStep1 = document.getElementById('return-step-1');
+        const returnStep2 = document.getElementById('return-step-2');
+        const returnStep3 = document.getElementById('return-step-3');
+        const chargeDamageRadios = document.querySelectorAll('input[name="charge-damage"]');
+        const damageAmountGroup = document.getElementById('damage-amount-group');
+        const damageAmountInput = document.getElementById('damage-amount');
+        const damageDescriptionInput = document.getElementById('damage-description');
+
+        let currentStep = 1;
+
+        // Helper: Update step indicators
+        function updateStepIndicators() {
+            document.querySelectorAll('.step-indicator').forEach((indicator, index) => {
+                const stepNum = index + 1;
+                const circle = indicator.querySelector('.step-circle');
+
+                if (stepNum < currentStep) {
+                    circle.classList.add('completed');
+                    circle.classList.remove('active');
+                } else if (stepNum === currentStep) {
+                    circle.classList.add('active');
+                    circle.classList.remove('completed');
+                } else {
+                    circle.classList.remove('active', 'completed');
+                }
+
+                indicator.classList.toggle('active', stepNum === currentStep);
+            });
+        }
+
+        // Helper: Show specific step
+        function showStep(step) {
+            currentStep = step;
+
+            // Hide all steps
+            returnStep1.classList.add('hidden');
+            returnStep2.classList.add('hidden');
+            returnStep3.classList.add('hidden');
+
+            // Show current step
+            if (step === 1) returnStep1.classList.remove('hidden');
+            if (step === 2) returnStep2.classList.remove('hidden');
+            if (step === 3) returnStep3.classList.remove('hidden');
+
+            // Update buttons
+            returnPrevBtn.classList.toggle('hidden', step === 1);
+            returnNextBtn.classList.toggle('hidden', step === 3);
+            finalizeReturnBtn.classList.toggle('hidden', step !== 3);
+
+            updateStepIndicators();
+        }
+
+        // Helper: Reset modal to step 1
+        function resetModal() {
+            showStep(1);
+            returnDefectsTextarea.value = '';
+            serviceReasonInput.value = '';
+            damageAmountInput.value = '';
+            damageDescriptionInput.value = '';
+            document.querySelector('input[name="bike-next-status"][value="available"]').checked = true;
+            document.querySelector('input[name="charge-damage"][value="no"]').checked = true;
+            serviceReasonGroup.classList.add('hidden');
+            damageAmountGroup.classList.add('hidden');
+        }
+
         // Helper function to run the finalization sequence
-        const finalizeAndSendAct = async (rentalId, defects, newBikeStatus, serviceReason, buttonToToggle) => {
-            toggleButtonLoading(buttonToToggle, true, buttonToToggle.textContent, 'Обработка...');
+        const finalizeAndSendAct = async (rentalId, defects, newBikeStatus, serviceReason, shouldCharge, chargeAmount, chargeDescription) => {
+            toggleButtonLoading(finalizeReturnBtn, true, 'Завершить приемку', 'Обработка...');
             try {
                 const { data: rental, error: rentalFetchError } = await supabase.from('rentals').select('user_id').eq('id', rentalId).single();
                 if (rentalFetchError) throw new Error('Не удалось получить данные аренды для отправки акта.');
                 const userId = rental.user_id;
 
+                // Step 1: Charge for damages if needed
+                if (shouldCharge && chargeAmount > 0) {
+                    const chargeResponse = await authedFetch('/api/admin', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'charge-for-damages',
+                            userId,
+                            rentalId,
+                            amount: chargeAmount,
+                            description: chargeDescription || 'Возмещение ущерба',
+                            defects
+                        })
+                    });
+
+                    const chargeResult = await chargeResponse.json();
+                    if (!chargeResponse.ok) throw new Error(chargeResult.error || 'Ошибка списания средств');
+                }
+
+                // Step 2: Generate return act PDF
                 const pdfServerUrl = 'https://gogobikedogovor.onrender.com/api/user';
                 const pdfResponse = await fetch(pdfServerUrl, {
                     method: 'POST',
@@ -2927,6 +3014,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const pdfResult = await pdfResponse.json();
                 if (!pdfResponse.ok) throw new Error(pdfResult.error || 'Ошибка генерации PDF акта.');
 
+                // Step 3: Finalize return
                 const finalizeResponse = await authedFetch('/api/admin', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -2944,97 +3032,91 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error(errorResult.error || 'Ошибка завершения аренды.');
                 }
 
-                alert('Приемка велосипеда успешно завершена! Акт отправлен клиенту на подпись.');
+                alert('✅ Приемка велосипеда успешно завершена! Акт отправлен клиенту на подпись.');
                 returnProcessModal.classList.add('hidden');
+                resetModal();
                 loadAssignments();
                 loadBikes();
-                return true; // Indicate success
+                return true;
             } catch (err) {
-                alert('Произошла ошибка на финальном шаге: ' + err.message);
-                return false; // Indicate failure
+                alert('❌ Произошла ошибка: ' + err.message);
+                return false;
             } finally {
-                if (buttonToToggle) toggleButtonLoading(buttonToToggle, false, buttonToToggle.textContent, 'Обработка...');
+                toggleButtonLoading(finalizeReturnBtn, false, 'Завершить приемку', 'Обработка...');
             }
         };
+
         // Show/hide service reason input
         bikeNextStatusRadios.forEach(radio => {
             radio.addEventListener('change', () => {
                 serviceReasonGroup.classList.toggle('hidden', radio.value !== 'in_service');
             });
         });
-        // Modal close events
-        returnProcessCloseBtn.addEventListener('click', () => returnProcessModal.classList.add('hidden'));
-        returnProcessModal.addEventListener('click', (e) => {
-            if (e.target === returnProcessModal) returnProcessModal.classList.add('hidden');
+
+        // Show/hide damage amount input
+        chargeDamageRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                damageAmountGroup.classList.toggle('hidden', radio.value !== 'yes');
+            });
         });
 
-        // The main button for issuing an invoice AND finalizing
-        issueInvoiceAfterReturnBtn.addEventListener('click', async () => {
-            const rentalId = returnRentalIdInput.value;
-            if (!rentalId) return;
-
-            try {
-                const { data: rental, error: rentalError } = await supabase.from('rentals').select('user_id, clients(balance_rub)').eq('id', rentalId).single();
-                if (rentalError) throw rentalError;
-
-                const userId = rental.user_id;
-                const userBalance = rental.clients?.balance_rub || 0;
-
-                const amountStr = prompt(`Баланс клиента: ${userBalance} ₽. Введите сумму для списания за ущерб:`);
-                if (!amountStr) return; // User clicked cancel
-
-                const amount = parseFloat(amountStr);
-                if (isNaN(amount) || amount <= 0) {
-                    alert('Введена некорректная сумма.');
-                    return;
-                }
-
-                toggleButtonLoading(issueInvoiceAfterReturnBtn, true, 'Выставить счет', 'Списание...');
-
-                const response = await authedFetch('/api/admin', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'charge-for-damages',
-                        userId,
-                        rentalId,
-                        amount,
-                        description: 'Возмещение ущерба',
-                        defects: returnDefectsTextarea.value.split('\n').map(d => d.trim()).filter(d => d)
-                    })
-                });
-
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.error || 'Ошибка сервера');
-
-                alert(result.message); // Show success message from backend
-
-                // --- AUTOMATICALLY FINALIZE ---
-                const defects = returnDefectsTextarea.value.split('\n').map(d => d.trim()).filter(d => d);
-                const newBikeStatus = document.querySelector('input[name="bike-next-status"]:checked').value;
-                const serviceReason = serviceReasonInput.value.trim();
-                await finalizeAndSendAct(rentalId, defects, newBikeStatus, serviceReason, issueInvoiceAfterReturnBtn);
-
-            } catch (err) {
-                alert('Ошибка при выставлении счета: ' + err.message);
-            } finally {
-                toggleButtonLoading(issueInvoiceAfterReturnBtn, false, 'Выставить счет', 'Списание...');
+        // Modal close events
+        returnProcessCloseBtn.addEventListener('click', () => {
+            returnProcessModal.classList.add('hidden');
+            resetModal();
+        });
+        returnProcessModal.addEventListener('click', (e) => {
+            if (e.target === returnProcessModal) {
+                returnProcessModal.classList.add('hidden');
+                resetModal();
             }
         });
 
-        // The secondary button to finalize without an invoice
+        // Step navigation
+        returnPrevBtn.addEventListener('click', () => {
+            if (currentStep > 1) showStep(currentStep - 1);
+        });
+
+        returnNextBtn.addEventListener('click', () => {
+            // Validation before moving to next step
+            if (currentStep === 1) {
+                const selectedStatus = document.querySelector('input[name="bike-next-status"]:checked').value;
+                if (selectedStatus === 'in_service' && !serviceReasonInput.value.trim()) {
+                    alert('Пожалуйста, укажите причину ремонта.');
+                    return;
+                }
+            }
+
+            if (currentStep < 3) showStep(currentStep + 1);
+        });
+
+        // Finalize button
         finalizeReturnBtn.addEventListener('click', async () => {
             const rentalId = returnRentalIdInput.value;
             const defects = returnDefectsTextarea.value.split('\n').map(d => d.trim()).filter(d => d);
             const newBikeStatus = document.querySelector('input[name="bike-next-status"]:checked').value;
             const serviceReason = serviceReasonInput.value.trim();
+            const shouldCharge = document.querySelector('input[name="charge-damage"]:checked').value === 'yes';
+            const chargeAmount = shouldCharge ? parseFloat(damageAmountInput.value) : 0;
+            const chargeDescription = damageDescriptionInput.value.trim();
 
-            if (newBikeStatus === 'in_service' && !serviceReason) {
-                alert('Пожалуйста, укажите причину ремонта.');
-                return;
+            // Validation
+            if (shouldCharge) {
+                if (!chargeAmount || chargeAmount <= 0) {
+                    alert('Пожалуйста, укажите корректную сумму для списания.');
+                    return;
+                }
+                if (!chargeDescription) {
+                    alert('Пожалуйста, укажите описание для счета.');
+                    return;
+                }
             }
-            await finalizeAndSendAct(rentalId, defects, newBikeStatus, serviceReason, finalizeReturnBtn);
+
+            await finalizeAndSendAct(rentalId, defects, newBikeStatus, serviceReason, shouldCharge, chargeAmount, chargeDescription);
         });
+
+        // Initialize modal on first open
+        resetModal();
     }
 
     // --- Page Transitions ---
