@@ -691,6 +691,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'bikes': { element: bikesSection, loader: loadBikes },
             'batteries': { element: batteriesSection, loader: loadBatteries }, // <-- ДОБАВЬ ЭТУ СТРОКУ
             'assignments': { element: assignmentsSection, loader: loadAssignments },
+            'bookings': { element: document.getElementById('bookings-section'), loader: loadBookings }, // +++ ДОБАВИТЬ ЭТУ СТРОКУ +++
             'templates': { element: templatesSection, loader: loadTemplates },
             'admin-map': { element: adminMapSection, loader: initAdminMap }, // <-- ИЗМЕНЕНИЕ
         };
@@ -2172,6 +2173,52 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
             console.error('Ошибка загрузки заявок:', err);
             assignmentsTableBody.innerHTML = `<tr><td colspan="5">Ошибка: ${err.message}</td></tr>`;
+        }
+    }
+
+    // +++ НОВАЯ ФУНКЦИЯ ДЛЯ ЗАГРУЗКИ БРОНЕЙ В АДМИНКЕ +++
+    async function loadBookings() {
+        const tbody = document.querySelector('#bookings-table tbody');
+        if (!tbody) return;
+        tbody.innerHTML = '<tr><td colspan="5">Загрузка...</td></tr>';
+
+        try {
+            const { data, error } = await supabase
+                .from('bookings')
+                .select('*, clients(name, phone)')
+                .eq('status', 'active')
+                .gt('expires_at', new Date().toISOString()) // Только активные и неистекшие
+                .order('expires_at', { ascending: true });
+
+            if (error) throw error;
+
+            tbody.innerHTML = '';
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5">Нет активных бронирований.</td></tr>';
+                return;
+            }
+
+            data.forEach(booking => {
+                const tr = document.createElement('tr');
+                const expiresDate = new Date(booking.expires_at);
+                const timeLeftMs = expiresDate - new Date();
+                const minutesLeft = Math.floor(timeLeftMs / 60000);
+
+                tr.innerHTML = `
+                    <td>${booking.clients?.name || 'ID: ' + booking.user_id}</td>
+                    <td>${booking.clients?.phone || '—'}</td>
+                    <td>${expiresDate.toLocaleString('ru-RU')}</td>
+                    <td>${minutesLeft > 0 ? `${minutesLeft} мин.` : 'менее минуты'}</td>
+                    <td class="table-actions">
+                        <button class="btn btn-secondary" data-booking-id="${booking.id}">Создать аренду</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+        } catch (err) {
+            console.error('Ошибка загрузки броней:', err);
+            tbody.innerHTML = `<tr><td colspan="5">Ошибка: ${err.message}</td></tr>`;
         }
     }
 

@@ -113,6 +113,7 @@
       <nav id="admin-nav">
         <button type="button" data-section="dashboard-main" class="active">Dashboard</button>
         <button type="button" data-section="assignments">Заявки</button>
+        <button type="button" data-section="bookings">Брони</button>
         <button type="button" data-section="tariffs">Тарифы</button>
         <button type="button" data-section="clients">Клиенты</button>
         <button type="button" data-section="rentals">Аренды</button>
@@ -166,6 +167,27 @@
               </tr>
             </thead>
             <tbody></tbody>
+          </table>
+        </section>
+
+        <!-- Bookings -->
+        <section id="bookings-section" class="admin-section hidden">
+          <div class="section-header">
+            <h2>Активные бронирования</h2>
+          </div>
+          <table id="bookings-table" class="admin-table">
+            <thead>
+              <tr>
+                <th>Клиент</th>
+                <th>Телефон</th>
+                <th>Бронь истекает</th>
+                <th>Осталось времени</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Сюда будут загружаться данные -->
+            </tbody>
           </table>
         </section>
 

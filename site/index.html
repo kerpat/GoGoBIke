@@ -355,6 +355,18 @@
         </div>
     </div>
 </div>
+<!-- +++ НОВОЕ МОДАЛЬНОЕ ОКНО ДЛЯ ПОДТВЕРЖДЕНИЯ БРОНИ +++ -->
+<div id="confirm-booking-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <button class="modal-close" id="confirm-booking-close-btn">&times;</button>
+        <h2>Бронирование велосипеда</h2>
+        <p style="color: var(--text-secondary); margin: 20px 0; line-height: 1.5;">
+            Вы забронируете электровелосипед на <strong>2 часа</strong>. Пожалуйста, подъедьте к точке выдачи до истечения этого времени.
+        </p>
+        <p class="disclaimer-text">Бронирование бесплатное. Если вы не заберете велосипед, бронь автоматически отменится.</p>
+        <button class="btn btn-primary" id="confirm-booking-btn">Забронировать</button>
+    </div>
+</div>
 <div id="tariff-modal" class="modal-overlay hidden">
     <div class="modal-content">
         <button class="modal-close" id="tariff-modal-close-btn">&times;</button>
@@ -621,6 +633,91 @@
             <p style="text-align: center; color: var(--dark-green);">Заявка на сдачу принята. Автосписания остановлены. Ожидайте подтверждения администратора.</p>`;
     };
 
+    // +++ НОВАЯ ФУНКЦИЯ ДЛЯ ОТОБРАЖЕНИЯ АКТИВНОЙ БРОНИ +++
+    let bookingTimerInterval = null; // Переменная для таймера
+
+    const renderActiveBookingView = (booking, container) => {
+        if (bookingTimerInterval) clearInterval(bookingTimerInterval); // Очищаем старый таймер
+
+        const endsDate = new Date(booking.expires_at);
+        const totalDuration = 2 * 60 * 60 * 1000; // 2 часа в миллисекундах
+
+        const updateTimer = () => {
+            const now = new Date();
+            const timeLeftMs = Math.max(0, endsDate - now);
+            const progress = (timeLeftMs / totalDuration) * 100;
+
+            const minutes = Math.floor((timeLeftMs / 1000 / 60) % 60);
+            const seconds = Math.floor((timeLeftMs / 1000) % 60);
+
+            const progressLabels = container.querySelector('.progress-labels');
+            const progressBar = container.querySelector('.progress-bar');
+
+            if (progressLabels) {
+                progressLabels.innerHTML = `<span>Забронировано</span><span>Осталось ${minutes}м ${seconds}с</span>`;
+            }
+            if (progressBar) {
+                progressBar.style.width = `${progress}%`;
+                progressBar.style.backgroundColor = '#f5a623'; // Оранжевый цвет
+            }
+
+            if (timeLeftMs <= 0) {
+                clearInterval(bookingTimerInterval);
+                // Можно добавить сообщение "Время вышло" или перезагрузить страницу
+                alert('Время бронирования истекло!');
+                window.location.reload();
+            }
+        };
+
+        container.innerHTML = `
+            <div class="bike-image-wrapper">
+                <img src="bike-delivery.png" alt="Booked Electric bike" class="bike-image" width="1536" height="1024" decoding="async">
+            </div>
+            <div class="progress-section">
+                <div class="progress-bar-container"><div class="progress-bar" style="width: 100%; background-color: #f5a623;"></div></div>
+                <div class="progress-labels"><span>Забронировано</span><span>Загрузка...</span></div>
+            </div>
+            <h2>У вас действует бронь до ${endsDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}.</h2>
+            <p style="text-align: center; color: var(--text-secondary); margin-top: -10px;">Пожалуйста, подойдите к точке выдачи, чтобы начать аренду.</p>
+            <div class.action-buttons>
+                 <button class="btn btn-secondary text-btn" id="cancel-booking-btn" data-booking-id="${booking.id}" style="border-color: #e53e3e; color: #e53e3e;">Отменить бронь</button>
+            </div>
+        `;
+
+        updateTimer(); // Первый вызов, чтобы не было задержки
+        bookingTimerInterval = setInterval(updateTimer, 1000);
+    };
+
+
+    // +++ НОВАЯ ФУНКЦИЯ ДЛЯ СОЗДАНИЯ БРОНИ +++
+    const processBooking = async () => {
+        const confirmBtn = document.getElementById('confirm-booking-btn');
+        toggleButtonLoading(confirmBtn, true, 'Забронировать', 'Обработка...');
+
+        const userId = localStorage.getItem('userId');
+        if (!userId) {
+            alert('Ошибка авторизации.');
+            toggleButtonLoading(confirmBtn, false, 'Забронировать', 'Обработка...');
+            return;
+        }
+
+        try {
+            const expires_at = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(); // +2 часа
+            const { error } = await supabase.from('bookings').insert({ user_id: userId, expires_at: expires_at });
+
+            if (error) throw error;
+
+            document.getElementById('confirm-booking-modal').classList.add('hidden');
+            showToast(bookingSuccessToast); // Используем ваш существующий тост
+            loadUserData(); // Перезагружаем данные, чтобы отобразить экран брони
+
+        } catch (err) {
+            alert('Не удалось создать бронь: ' + err.message);
+        } finally {
+            toggleButtonLoading(confirmBtn, false, 'Забронировать', 'Обработка...');
+        }
+    };
+
     const renderAwaitingContractView = (rental, container) => {
         container.innerHTML = `
             <div class="bike-image-wrapper">
@@ -653,6 +750,7 @@
             <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
         `;
     };
+
 
     const renderDefaultView = (container) => {
         document.querySelector('.app-header')?.classList.remove('header-centered');
@@ -768,78 +866,95 @@ if (status === 'approved') {
         });
     }
 
-    const { data: rental, error: rentalError } = await supabase
-        .from('rentals')
-        .select('*, tariffs(*)')
+    // +++ ИЗМЕНЕНИЕ: СНАЧАЛА ПРОВЕРЯЕМ БРОНЬ, ПОТОМ АРЕНДУ +++
+
+    // 1. Проверяем наличие активной брони
+    const { data: booking, error: bookingError } = await supabase
+        .from('bookings')
+        .select('*')
         .eq('user_id', userId)
-        .in('status', ['active', 'overdue', 'pending_return', 'awaiting_battery_assignment', 'awaiting_contract_signing'])
-        .order('created_at', { ascending: false })
+        .eq('status', 'active')
+        .gt('expires_at', new Date().toISOString()) // Убеждаемся, что бронь не истекла
         .limit(1)
         .single();
 
-    if (rentalError && rentalError.code !== 'PGRST116') {
-        console.error("Ошибка при получении аренды:", rentalError);
-        mainContent.innerHTML = `<h2 style="text-align: center; color: red;">Не удалось загрузить данные об аренде.</h2>`;
-        return;
-    }
+    if (booking) {
+        // Если есть активная бронь, показываем экран бронирования
+        renderActiveBookingView(booking, mainContent);
 
-    if (rental) {
-        // Real-time подписка на изменение статуса ТЕКУЩЕЙ аренды
-        const rentalChannel = supabase.channel(`rental-status-${rental.id}`);
-        rentalChannel
-            .on('postgres_changes', {
-                event: 'UPDATE',
-                schema: 'public',
-                table: 'rentals',
-                filter: `id=eq.${rental.id}`
-            }, payload => {
-                const newStatus = payload.new.status;
-                // ИЗМЕНЕНИЕ: Реагируем на разные статусы
-                if (newStatus === 'awaiting_contract_signing') {
-                    // Админ выбрал АКБ, отправляем клиента на подписание!
-                    alert('Администратор подобрал для вас оборудование! Теперь необходимо подписать договор.');
-                    window.location.href = 'profile.html#notifications';
-                } else if (newStatus === 'active') {
-                    // Это сработает после того, как клиент подпишет договор
-                    window.location.reload();
-                }
-            })
-            .subscribe();
-
-        // Отображаем нужный экран в зависимости от текущего статуса
-        switch(rental.status) {
-            case 'awaiting_battery_assignment': // Ожидает АКБ
-                renderPendingBatteryView(mainContent); // Показываем экран "Дождитесь..."
-                break;
-            case 'awaiting_contract_signing': // Ожидает подписания
-                renderAwaitingContractView(rental, mainContent);
-                break;
-            case 'awaiting_contract_signing':
-                // Теперь этот статус снова означает "надо подписать"
-                // Можно показать специальное уведомление или сразу перенаправить
-                renderAwaitingContractView(rental, mainContent);
-                break;
-            case 'active':
-                await renderActiveRentalView(rental, mainContent);
-                break;
-            case 'overdue':
-                renderOverdueRentalView(rental, mainContent);
-                break;
-            case 'pending_return':
-                renderPendingReturnView(rental, mainContent);
-                break;
-            default:
-                renderDefaultView(mainContent);
-                initializeMainScreenEventListeners();
-        }
-        loadAvailableBikesCount(client.city);
     } else {
-        renderDefaultView(mainContent);
-        loadAvailableBikesCount(client.city);
-        initializeMainScreenEventListeners();
-        (function(){
-            // Эта логика больше не нужна, все настроено в renderDefaultView
-        })();
+        // 2. Если брони нет, проверяем наличие активной аренды
+        const { data: rental, error: rentalError } = await supabase
+            .from('rentals')
+            .select('*, tariffs(*)')
+            .eq('user_id', userId)
+            .in('status', ['active', 'overdue', 'pending_return', 'awaiting_battery_assignment', 'awaiting_contract_signing'])
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (rentalError && rentalError.code !== 'PGRST116') {
+             console.error("Ошибка при получении аренды:", rentalError);
+             mainContent.innerHTML = `<h2 style="text-align: center; color: red;">Не удалось загрузить данные об аренде.</h2>`;
+             return;
+        }
+
+        if (rental) {
+            // Real-time подписка на изменение статуса ТЕКУЩЕЙ аренды
+            const rentalChannel = supabase.channel(`rental-status-${rental.id}`);
+            rentalChannel
+                .on('postgres_changes', {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'rentals',
+                    filter: `id=eq.${rental.id}`
+                }, payload => {
+                    const newStatus = payload.new.status;
+                    // ИЗМЕНЕНИЕ: Реагируем на разные статусы
+                    if (newStatus === 'awaiting_contract_signing') {
+                        // Админ выбрал АКБ, отправляем клиента на подписание!
+                        alert('Администратор подобрал для вас оборудование! Теперь необходимо подписать договор.');
+                        window.location.href = 'profile.html#notifications';
+                    } else if (newStatus === 'active') {
+                        // Это сработает после того, как клиент подпишет договор
+                        window.location.reload();
+                    }
+                })
+                .subscribe();
+
+            // Отображаем нужный экран в зависимости от текущего статуса
+            switch(rental.status) {
+                case 'awaiting_battery_assignment': // Ожидает АКБ
+                    renderPendingBatteryView(mainContent); // Показываем экран "Дождитесь..."
+                    break;
+                case 'awaiting_contract_signing': // Ожидает подписания
+                    renderAwaitingContractView(rental, mainContent);
+                    break;
+                case 'awaiting_contract_signing':
+                    // Теперь этот статус снова означает "надо подписать"
+                    // Можно показать специальное уведомление или сразу перенаправить
+                    renderAwaitingContractView(rental, mainContent);
+                    break;
+                case 'active':
+                    await renderActiveRentalView(rental, mainContent);
+                    break;
+                case 'overdue':
+                    renderOverdueRentalView(rental, mainContent);
+                    break;
+                case 'pending_return':
+                    renderPendingReturnView(rental, mainContent);
+                    break;
+                default:
+                    renderDefaultView(mainContent);
+                    initializeMainScreenEventListeners();
+            }
+            loadAvailableBikesCount(client.city);
+        } else {
+            // 3. Если нет ни брони, ни аренды, показываем экран по умолчанию
+            renderDefaultView(mainContent);
+            loadAvailableBikesCount(client.city);
+            initializeMainScreenEventListeners();
+        }
     }
         } else {
             appHeader.classList.add('header-centered');
@@ -1131,6 +1246,10 @@ function initializeMainScreenEventListeners() {
         const topupModalCloseBtn = document.getElementById('topup-modal-close-btn');
         const payBtn = document.getElementById('pay-sbp-btn');
         const amountInput = document.getElementById('amount-input');
+
+        // Элементы для модального окна бронирования
+        const confirmBookingModal = document.getElementById('confirm-booking-modal');
+        const confirmBookingCloseBtn = document.getElementById('confirm-booking-close-btn');
 
         // Элементы для работы с GoGoBike тарифами
         const tariffModal = document.getElementById('tariff-modal');
@@ -1999,10 +2118,10 @@ function initializeMainScreenEventListeners() {
             }
         });
 
-        [qrModalCloseBtn, idInputModalCloseBtn, bookingListModalCloseBtn, topupModalCloseBtn].forEach(btn => {
+        [qrModalCloseBtn, idInputModalCloseBtn, bookingListModalCloseBtn, topupModalCloseBtn, confirmBookingCloseBtn].forEach(btn => {
             btn.addEventListener('click', () => btn.closest('.modal-overlay').classList.add('hidden'));
         });
-        [qrModal, idInputModal, bookingListModal, topupModal].forEach(modal => {
+        [qrModal, idInputModal, bookingListModal, topupModal, confirmBookingModal].forEach(modal => {
             modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
         });
 
@@ -2020,6 +2139,9 @@ function initializeMainScreenEventListeners() {
             const retryBtn = e.target.closest('#retry-payment-btn');
 
             // --- НАЧАЛО НОВОГО КОДА ---
+            const bookingBtn = e.target.closest('#booking-btn'); // Кнопка "Бронь" на главном экране
+            const confirmBooking = e.target.closest('#confirm-booking-btn'); // Кнопка в модалке
+            const cancelBooking = e.target.closest('#cancel-booking-btn'); // Кнопка отмены брони
             const extendActiveBtn = e.target.closest('#extend-active-rental-btn');
             const reportProblemBtn = e.target.closest('#report-problem-btn');
 
@@ -2074,6 +2196,30 @@ function initializeMainScreenEventListeners() {
                 }
                 const modal = document.getElementById('extend-modal');
                 if (modal) modal.classList.remove('hidden');
+            }
+
+            if (bookingBtn) {
+                e.preventDefault();
+                const modal = document.getElementById('confirm-booking-modal');
+                if (modal) modal.classList.remove('hidden');
+                return;
+            }
+
+            if (confirmBooking) {
+                e.preventDefault();
+                processBooking(); // Вызываем нашу новую функцию
+                return;
+            }
+
+            if (cancelBooking) {
+                e.preventDefault();
+                if (confirm('Вы уверены, что хотите отменить бронь?')) {
+                    const bookingId = cancelBooking.dataset.bookingId;
+                    const { error } = await supabase.from('bookings').update({ status: 'cancelled' }).eq('id', bookingId);
+                    if (error) alert('Ошибка отмены: ' + error.message);
+                    else window.location.reload();
+                }
+                return;
             }
 
             if (booking) {
