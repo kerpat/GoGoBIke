@@ -511,6 +511,14 @@
             }, 300);
         }
 
+        // Check for query parameter to open notifications modal
+        const queryParams = new URLSearchParams(window.location.search);
+        if (queryParams.get('open') === 'notifications') {
+            setTimeout(() => {
+                openModal('notifications-modal');
+            }, 300);
+        }
+
         // --- НОВЫЙ КОД: Обработка deeplink из Telegram ---
         try {
             const tg = window.Telegram.WebApp;
