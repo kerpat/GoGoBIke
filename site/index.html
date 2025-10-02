@@ -441,6 +441,8 @@
 
     // +++ ДОБАВЬ ЭТУ СТРОЧКУ +++
     let balanceChannel = null;
+    let bookingSuccessToast = null;
+    let rentSuccessToast = null;
 
     const CURRENCY_SYMBOL = '₽';
     let userBalance = 0;
@@ -1244,8 +1246,8 @@ function initializeMainScreenEventListeners() {
         const notificationToast = document.getElementById('notification-toast');
         const successToast = document.getElementById('success-toast');
         const successAmountSpan = document.getElementById('success-amount');
-        const rentSuccessToast = document.getElementById('rent-success-toast');
-        const bookingSuccessToast = document.getElementById('booking-success-toast');
+        rentSuccessToast = document.getElementById('rent-success-toast');
+        bookingSuccessToast = document.getElementById('booking-success-toast');
 
         // Элементы для модального окна пополнения баланса
         const topupModal = document.getElementById('topup-modal');
