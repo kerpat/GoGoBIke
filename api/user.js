@@ -327,6 +327,70 @@ async function handleUnbindPaymentMethod({ userId }) {
     return { status: 200, body: { success: true, message: 'Payment method successfully unbound.' } };
 }
 
+async function handleGetTariffByBike({ bikeCode }) {
+    if (!bikeCode) {
+        return { status: 400, body: { error: 'bikeCode is required' } };
+    }
+
+    const supabaseAdmin = createSupabaseAdmin();
+
+    const { data: bike, error: bikeError } = await supabaseAdmin
+        .from('bikes')
+        .select('id, status, tariff_id')
+        .eq('bike_code', bikeCode)
+        .single();
+
+    if (bikeError || !bike) {
+        return { status: 404, body: { error: 'Велосипед не найден' } };
+    }
+
+    if (bike.status !== 'available') {
+        return { status: 400, body: { error: 'Велосипед недоступен для аренды' } };
+    }
+    if (!bike.tariff_id) {
+        return { status: 400, body: { error: 'У велосипеда не указан тариф' } };
+    }
+    const { data: tariff, error: tariffError } = await supabaseAdmin
+        .from('tariffs')
+        .select('*')
+        .eq('id', bike.tariff_id)
+        .eq('is_active', true)
+        .single();
+
+    if (tariffError || !tariff) {
+        return { status: 404, body: { error: 'Тариф не найден или неактивен' } };
+    }
+
+    const formattedTariff = {
+        id: tariff.id,
+        slug: tariff.slug || tariff.title.toLowerCase().replace(/\s+/g, '-'),
+        title: tariff.title,
+        price_rub: tariff.price_rub,
+        duration_days: tariff.duration_days,
+        deposit_rub: tariff.deposit_rub || 0,
+        extensions: tariff.extensions ? (typeof tariff.extensions === 'string' ? JSON.parse(tariff.extensions) : tariff.extensions) : null,
+        description: tariff.description || '',
+        short_description: tariff.short_description || ''
+    };
+
+    return { status: 200, body: { tariff: formattedTariff } };
+}
+
+async function handleGetSignedUploadUrl({ path }) {
+    if (!path) {
+        return { status: 400, body: { error: 'File path is required.' } };
+    }
+    const supabaseAdmin = createSupabaseAdmin();
+    const { data, error } = await supabaseAdmin.storage
+        .from('passports')
+        .createSignedUploadUrl(path);
+
+    if (error) {
+        throw new Error(`Failed to create signed URL: ${error.message}`);
+    }
+    return { status: 200, body: data };
+}
+
 
 async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -364,6 +428,12 @@ async function handler(req, res) {
                 break;
             case 'unbind-payment-method':
                 result = await handleUnbindPaymentMethod(body);
+                break;
+            case 'get-tariff-by-bike':
+                result = await handleGetTariffByBike(body);
+                break;
+            case 'get-signed-upload-url':
+                result = await handleGetSignedUploadUrl(body);
                 break;
             default:
                 result = { status: 400, body: { error: 'Invalid action' } };

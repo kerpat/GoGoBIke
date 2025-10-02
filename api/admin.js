@@ -765,6 +765,236 @@ async function handleChargeForDamages({ userId, rentalId, amount, description, d
     return { status: 200, body: { message: `Сумма ${chargeAmount} ₽ успешно списана с привязанной карты клиента.` } };
 }
 
+async function handleSendNotification({ user_id, text }) {
+    if (!user_id || !text) {
+        return { status: 400, body: { error: 'user_id and text are required.' } };
+    }
+
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const telegramApiUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
+    try {
+        const response = await fetch(telegramApiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                chat_id: user_id,
+                text: text,
+                parse_mode: 'Markdown'
+            })
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.json();
+            console.error(`Telegram API Error! Status: ${response.status}. Response:`, errorBody);
+            return { status: 500, body: { error: 'Failed to send notification.' } };
+        }
+
+        return { status: 200, body: { success: true, message: 'Notification sent.' } };
+    } catch (error) {
+        console.error('Send notification error:', error);
+        return { status: 500, body: { error: 'Failed to send notification.' } };
+    }
+}
+
+async function handleProcessRenewals() {
+    const supabaseAdmin = createSupabaseAdmin();
+    const today = new Date().toISOString();
+
+    const { data: rentalsToRenew = [], error: rentalsError } = await supabaseAdmin
+        .from('rentals')
+        .select(`
+            id,
+            user_id,
+            total_paid_rub,
+            clients ( yookassa_payment_method_id ),
+            tariffs ( price_rub, duration_days )
+        `)
+        .eq('status', 'active')
+        .lte('current_period_ends_at', today);
+
+    if (rentalsError) throw new Error('Failed to load rentals: ' + rentalsError.message);
+
+    if (!rentalsToRenew.length) {
+        return { status: 200, body: { processed: 0, overdue: 0 } };
+    }
+
+    let overdueCount = 0;
+
+    for (const rental of rentalsToRenew) {
+        const { id: rentalId, clients, tariffs } = rental;
+        const paymentMethodId = clients?.yookassa_payment_method_id;
+        const renewalAmount = tariffs?.price_rub;
+        const rentalDuration = tariffs?.duration_days;
+
+        if (!paymentMethodId || !renewalAmount || !rentalDuration) {
+            console.warn(`Rental #${rentalId}: missing payment method or tariff data.`);
+            await supabaseAdmin.from('rentals').update({ status: 'overdue' }).eq('id', rentalId);
+            overdueCount += 1;
+            continue;
+        }
+
+        const idempotenceKey = crypto.randomUUID();
+        const authString = Buffer.from(`${process.env.YOOKASSA_SHOP_ID}:${process.env.YOOKASSA_SECRET_KEY}`).toString('base64');
+
+        const response = await fetch('https://api.yookassa.ru/v3/payments', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Idempotence-Key': idempotenceKey,
+                'Authorization': `Basic ${authString}`
+            },
+            body: JSON.stringify({
+                amount: { value: renewalAmount.toFixed(2), currency: 'RUB' },
+                capture: true,
+                payment_method_id: paymentMethodId,
+                description: `Rental renewal #${rentalId}`
+            })
+        });
+
+        const paymentResult = await response.json();
+
+        if (response.ok && paymentResult.status === 'succeeded') {
+            console.log(`Renewed rental #${rentalId}.`);
+
+            const newEndDate = new Date();
+            newEndDate.setDate(newEndDate.getDate() + rentalDuration);
+
+            await supabaseAdmin
+                .from('rentals')
+                .update({
+                    current_period_ends_at: newEndDate.toISOString(),
+                    total_paid_rub: (rental.total_paid_rub || 0) + renewalAmount
+                })
+                .eq('id', rentalId);
+
+            await supabaseAdmin.from('payments').insert({
+                rental_id: rentalId,
+                client_id: rental.user_id,
+                amount_rub: renewalAmount,
+                status: 'succeeded',
+                payment_type: 'renewal',
+                yookassa_payment_id: paymentResult.id
+            });
+        } else {
+            console.error(`Failed to renew rental #${rentalId}:`, paymentResult);
+            overdueCount += 1;
+
+            await supabaseAdmin.from('rentals').update({ status: 'overdue' }).eq('id', rentalId);
+
+            await supabaseAdmin.from('payments').insert({
+                rental_id: rentalId,
+                client_id: rental.user_id,
+                amount_rub: renewalAmount,
+                status: 'failed',
+                payment_type: 'renewal',
+                yookassa_payment_id: paymentResult.id || `failed-${idempotenceKey}`
+            });
+        }
+    }
+
+    return { status: 200, body: { processed: rentalsToRenew.length, overdue: overdueCount } };
+}
+
+async function handleGenerateContract({ clientId, templateId }) {
+    if (!clientId || !templateId) {
+        return { status: 400, body: { error: 'clientId and templateId are required' } };
+    }
+
+    const supabaseAdmin = createSupabaseAdmin();
+
+    // 1. Get template
+    const { data: template, error: templateError } = await supabaseAdmin
+        .from('contract_templates')
+        .select('content')
+        .eq('id', templateId)
+        .single();
+
+    if (templateError || !template) {
+        return { status: 404, body: { error: 'Template not found' } };
+    }
+
+    // 2. Get client data
+    const { data: client, error: clientError } = await supabaseAdmin
+        .from('clients')
+        .select('*')
+        .eq('id', clientId)
+        .single();
+
+    if (clientError || !client) {
+        return { status: 404, body: { error: 'Client not found' } };
+    }
+
+    // 3. Get rental data
+    const { data: rental, error: rentalError } = await supabaseAdmin
+        .from('rentals')
+        .select('*')
+        .eq('client_id', clientId)
+        .eq('status', 'active')
+        .single();
+
+    // 4. Get tariff data
+    let tariff = null;
+    if (rental) {
+        const { data: tariffData, error: tariffError } = await supabaseAdmin
+            .from('tariffs')
+            .select('*')
+            .eq('id', rental.tariff_id)
+            .single();
+        if (!tariffError) tariff = tariffData;
+    }
+
+    // 5. Replace placeholders
+    let htmlContent = template.content;
+
+    // Client
+    htmlContent = htmlContent.replace(/\{\{client\.full_name\}\}/g, client.name || '');
+    htmlContent = htmlContent.replace(/\{\{client\.first_name\}\}/g, client.name?.split(' ')[0] || '');
+    htmlContent = htmlContent.replace(/\{\{client\.last_name\}\}/g, client.name?.split(' ')[1] || '');
+    htmlContent = htmlContent.replace(/\{\{client\.middle_name\}\}/g, client.name?.split(' ')[2] || '');
+    htmlContent = htmlContent.replace(/\{\{client\.phone\}\}/g, client.phone || '');
+    htmlContent = htmlContent.replace(/\{\{client\.city\}\}/g, client.city || '');
+    htmlContent = htmlContent.replace(/\{\{client\.address\}\}/g, client.extra?.address || '');
+
+    // Tariff
+    if (tariff) {
+        htmlContent = htmlContent.replace(/\{\{tariff\.title\}\}/g, tariff.title || '');
+        htmlContent = htmlContent.replace(/\{\{tariff\.price_rub\}\}/g, tariff.price_rub || '');
+        htmlContent = htmlContent.replace(/\{\{tariff\.duration_days\}\}/g, tariff.duration_days || '');
+    }
+
+    // Rental
+    if (rental) {
+        htmlContent = htmlContent.replace(/\{\{rental\.id\}\}/g, rental.id || '');
+        htmlContent = htmlContent.replace(/\{\{rental\.starts_at\}\}/g, rental.starts_at || '');
+        htmlContent = htmlContent.replace(/\{\{rental\.ends_at\}\}/g, rental.ends_at || '');
+        htmlContent = htmlContent.replace(/\{\{rental\.bike_id\}\}/g, rental.bike_id || '');
+    }
+
+    // Utility
+    htmlContent = htmlContent.replace(/\{\{now\.date\}\}/g, new Date().toLocaleDateString('ru-RU'));
+    htmlContent = htmlContent.replace(/\{\{now\.time\}\}/g, new Date().toLocaleTimeString('ru-RU'));
+
+    // 6. Generate DOCX
+    const htmlToDocx = require('html-to-docx');
+    const fileBuffer = await htmlToDocx(htmlContent, {
+        title: `Договор ${client.name}`,
+        description: 'Сгенерированный договор аренды',
+    });
+
+    // 7. Return file
+    return {
+        status: 200,
+        body: fileBuffer,
+        headers: {
+            'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'Content-Disposition': `attachment; filename=contract_${clientId}.docx`
+        }
+    };
+}
+
 async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -832,11 +1062,28 @@ async function handler(req, res) {
             case 'charge-for-damages':
                 result = await handleChargeForDamages(body);
                 break;
+            case 'send-notification':
+                result = await handleSendNotification(body);
+                break;
+            case 'process-renewals':
+                result = await handleProcessRenewals();
+                break;
+            case 'generate-contract':
+                result = await handleGenerateContract(body);
+                break;
             default:
                 result = { status: 400, body: { error: 'Invalid action' } };
         }
 
-        res.status(result.status).json(result.body);
+        if (result.headers) {
+            // For file downloads
+            Object.keys(result.headers).forEach(header => {
+                res.setHeader(header, result.headers[header]);
+            });
+            res.status(result.status).send(result.body);
+        } else {
+            res.status(result.status).json(result.body);
+        }
     } catch (error) {
         console.error('Admin handler error:', error);
         res.status(500).json({ error: error.message });
