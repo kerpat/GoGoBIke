@@ -2201,16 +2201,22 @@ document.addEventListener('DOMContentLoaded', () => {
             data.forEach(booking => {
                 const tr = document.createElement('tr');
                 const expiresDate = new Date(booking.expires_at);
-                const timeLeftMs = expiresDate - new Date();
+                const timeLeftMs = Math.max(0, expiresDate.getTime() - new Date().getTime());
                 const minutesLeft = Math.floor(timeLeftMs / 60000);
+                const progress = Math.max(0, (timeLeftMs / (2 * 60 * 60 * 1000)) * 100); // 2 часа = 100%
 
                 tr.innerHTML = `
                     <td>${booking.clients?.name || 'ID: ' + booking.user_id}</td>
                     <td>${booking.clients?.phone || '—'}</td>
-                    <td>${expiresDate.toLocaleString('ru-RU')}</td>
-                    <td>${minutesLeft > 0 ? `${minutesLeft} мин.` : 'менее минуты'}</td>
+                    <td>${expiresDate.toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+                    <td>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" style="width: ${progress}%; background-color: ${progress > 20 ? '#f5a623' : '#e53e3e'};"></div>
+                        </div>
+                        ${minutesLeft > 0 ? `${minutesLeft} мин.` : 'менее минуты'}
+                    </td>
                     <td class="table-actions">
-                        <button class="btn btn-secondary" data-booking-id="${booking.id}">Создать аренду</button>
+                        <button class="btn btn-primary" data-booking-id="${booking.id}">Создать аренду</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -2220,6 +2226,38 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Ошибка загрузки броней:', err);
             tbody.innerHTML = `<tr><td colspan="5">Ошибка: ${err.message}</td></tr>`;
         }
+    }
+
+    // +++ НОВЫЙ ОБРАБОТЧИК ДЛЯ КНОПКИ "СОЗДАТЬ АРЕНДУ" В ТАБЛИЦЕ БРОНЕЙ +++
+    const bookingsTableBody = document.querySelector('#bookings-table tbody');
+    if (bookingsTableBody) {
+        bookingsTableBody.addEventListener('click', async (e) => {
+            const createRentalBtn = e.target.closest('button[data-booking-id]');
+            if (createRentalBtn) {
+                const bookingId = createRentalBtn.dataset.bookingId;
+                if (confirm(`Вы уверены, что хотите создать аренду из брони #${bookingId}?`)) {
+                    toggleButtonLoading(createRentalBtn, true, 'Создать аренду', 'Создание...');
+                    try {
+                        const response = await authedFetch('/api/admin', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'create-rental-from-booking', bookingId: parseInt(bookingId, 10) })
+                        });
+                        const result = await response.json();
+                        if (!response.ok) throw new Error(result.error || 'Ошибка сервера');
+
+                        alert(result.message || 'Аренда успешно создана!');
+                        loadBookings(); // Обновляем список броней
+                        loadAssignments(); // Обновляем список заявок, чтобы появилась новая аренда
+
+                    } catch (err) {
+                        alert('Ошибка создания аренды: ' + err.message);
+                    } finally {
+                        toggleButtonLoading(createRentalBtn, false, 'Создать аренду', 'Создание...');
+                    }
+                }
+            }
+        });
     }
 
     // ЗАМЕНИ ВЕСЬ ЭТОТ БЛОК В СВОЕМ ФАЙЛЕ ADMIN.JS

@@ -652,7 +652,7 @@
 
         const updateTimer = () => {
             const now = new Date();
-            const timeLeftMs = Math.max(0, endsDate - now);
+            const timeLeftMs = Math.max(0, endsDate.getTime() - now.getTime());
             const progress = (timeLeftMs / totalDuration) * 100;
 
             const minutes = Math.floor((timeLeftMs / 1000 / 60) % 60);
@@ -685,10 +685,10 @@
                 <div class="progress-bar-container"><div class="progress-bar" style="width: 100%; background-color: #f5a623;"></div></div>
                 <div class="progress-labels"><span>Забронировано</span><span>Загрузка...</span></div>
             </div>
-            <h2>У вас действует бронь до ${endsDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</h2>
-            <p style="text-align: center; color: var(--text-secondary); margin-top: 10px;">Пожалуйста, подойдите к точке выдачи, чтобы начать аренду.</p>
+            <h2>У вас действует бронь до ${endsDate.toLocaleTimeString('ru-RU', { timeZone: 'Europe/Moscow', hour: '2-digit', minute: '2-digit' })}</h2>
+            <p style="text-align: center; color: var(--text-secondary); margin-top: 10px; margin-bottom: 20px;">Пожалуйста, подойдите к точке выдачи, чтобы начать аренду.</p>
             <div class="action-buttons">
-                 <button class="btn btn-secondary text-btn" id="cancel-booking-btn" data-booking-id="${booking.id}" style="border-color: #e53e3e; color: #e53e3e;">Отменить бронь</button>
+                 <button class="btn btn-danger" id="cancel-booking-btn" data-booking-id="${booking.id}">Отменить бронь</button>
             </div>
         `;
 

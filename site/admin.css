@@ -529,6 +529,31 @@ body {
   box-shadow: var(--shadow-soft);
 }
 
+.btn-danger {
+    background-color: #fff1f2;
+    color: #e53e3e;
+    border: 1px solid #fecdd3;
+}
+
+.btn-danger:hover {
+    background-color: #ffe4e6;
+    border-color: #e53e3e;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background-color: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+}
+.progress-bar {
+    height: 100%;
+    background-color: var(--accent); /* Green by default */
+    border-radius: 4px;
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
 .btn-link {
   background: transparent;
   color: var(--accent);
