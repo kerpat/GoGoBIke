@@ -1269,16 +1269,34 @@ function initializeMainScreenEventListeners() {
                     const response = await fetch('/api/payments', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'create-payment', userId: userId, tariffId: tariff.id, bikeCode: bikeCode, amount: cost, days: selectedExt ? selectedExt.days : undefined, return_url: window.location.origin + window.location.pathname + '?payment_success=true' })
+                        body: JSON.stringify({
+                            action: 'create-payment',
+                            userId: userId,
+                            tariffId: tariff.id,
+                            bikeCode: bikeCode,
+                            amount: cost,
+                            days: selectedExt ? selectedExt.days : undefined,
+                            return_url: window.location.origin + window.location.pathname + '?payment_success=true'
+                        })
                     });
 
                     const data = await response.json();
                     if (!response.ok) throw new Error(data.error || 'Неизвестная ошибка');
 
+                    // --- ВОТ ИСПРАВЛЕНИЕ ---
                     if (data.confirmation_url) {
+                        // Сценарий 1: Карта не привязана. Перенаправляем на оплату.
                         window.location.href = data.confirmation_url;
+                    } else if (data.status === 'succeeded' || data.status === 'pending') {
+                        // Сценарий 2: Карта привязана, автоплатеж прошел.
+                        // Просто закрываем модалки и обновляем интерфейс.
+                        console.log('Автоплатеж прошел успешно, обновляем UI...');
+                        document.getElementById('tariff-detail-modal').classList.add('hidden');
+                        document.getElementById('tariff-modal').classList.add('hidden');
+                        loadUserData(); // Эта функция перерисует экран в состояние ожидания АКБ.
                     } else {
-                        throw new Error('Не удалось получить ссылку на оплату.');
+                        // Сценарий 3: Что-то пошло не так.
+                        throw new Error('Не удалось получить ссылку на оплату или подтверждение платежа.');
                     }
                 }
 
