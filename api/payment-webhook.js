@@ -147,6 +147,44 @@ async function processSucceededPayment(notification) {
         return; // Завершаем после обработки аренды
     }
 
+    // --- Логика для бронирования (если есть payment_type === 'booking') ---
+    if (payment_type === 'booking') {
+        console.log(`[БРОНИРОВАНИЕ] userId: ${userId}, сумма: ${paymentAmount}`);
+
+        // Создаем бронь на 2 часа
+        const expires_at = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(); // +2 часа
+
+        const { data: newBooking, error: bookingError } = await supabaseAdmin
+            .from('bookings')
+            .insert({
+                user_id: userId,
+                expires_at: expires_at,
+                status: 'active',
+                cost_rub: paymentAmount // <-- ВОТ ЭТА СТРОКА
+            })
+            .select('id')
+            .single();
+
+        if (bookingError) {
+            throw new Error(`Не удалось создать бронь: ${bookingError.message}`);
+        }
+        console.log(`[БРОНИРОВАНИЕ] Создана бронь #${newBooking.id} до ${expires_at}.`);
+
+        // Записать платеж в историю
+        const { error: paymentError } = await supabaseAdmin.from('payments').insert({
+            client_id: userId,
+            booking_id: newBooking.id,
+            amount_rub: paymentAmount,
+            status: 'succeeded',
+            payment_type: 'booking',
+            yookassa_payment_id: yookassaPaymentId
+        });
+        if (paymentError) throw new Error(`Не удалось записать платеж бронирования: ${paymentError.message}`);
+
+        console.log(`[БРОНИРОВАНИЕ] Платеж ${yookassaPaymentId} успешно обработан и связан с бронью #${newBooking.id}.`);
+        return; // Завершаем после обработки бронирования
+    }
+
     // --- Логика для стандартных пополнений (если это не аренда и не привязка карты) ---
     console.log(`Платеж ${yookassaPaymentId} обрабатывается как пополнение баланса.`);
     if (!userId) {
