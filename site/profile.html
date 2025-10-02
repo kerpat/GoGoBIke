@@ -965,7 +965,7 @@
             // ИЗМЕНЕНИЕ: Получаем номера АКБ из новой связанной таблицы
             const batteryNumbers = rental.rental_batteries && rental.rental_batteries.length > 0
                 ? rental.rental_batteries.map(rb => rb.batteries.serial_number).join(', ')
-                : 'N/A';
+                : (Array.isArray(bike?.battery_numbers) ? bike.battery_numbers.join(', ') : (bike?.battery_numbers || 'N/A'));
 
             return `
                 <div style="text-align: center; font-weight: bold; font-size: 1.2em; margin-bottom: 20px;">
@@ -1006,7 +1006,9 @@
             const client = rental.clients;
             const bike = rental.bikes;
             const now = new Date();
-            const batteryNumbers = Array.isArray(bike?.battery_numbers) ? bike.battery_numbers.join(', ') : (bike?.battery_numbers || 'N/A');
+            const batteryNumbers = rental.rental_batteries && rental.rental_batteries.length > 0
+                ? rental.rental_batteries.map(rb => rb.batteries.serial_number).join(', ')
+                : (Array.isArray(bike?.battery_numbers) ? bike.battery_numbers.join(', ') : (bike?.battery_numbers || 'N/A'));
             const defectsHTML = defects && defects.length > 0 
                 ? `<h4 style="margin-top: 20px; margin-bottom: 10px;">Выявленные неисправности</h4><ul style="padding-left: 20px; margin-bottom: 20px; font-size: 0.9em;">${defects.map(d => `<li>${d}</li>`).join('')}</ul>`
                 : '<p style="font-size: 0.9em; margin-top: 20px;">Неисправности на момент сдачи не выявлены.</p>';

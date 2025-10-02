@@ -1375,7 +1375,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const { data, error } = await supabase
                 .from('rentals')
-                .select('id, user_id, bike_id, starts_at, current_period_ends_at, total_paid_rub, status, extra_data, clients (name, phone)')
+                .select('id, user_id, bike_id, starts_at, current_period_ends_at, total_paid_rub, status, extra_data, clients (name, phone), rental_batteries(batteries(serial_number))')
                 .order('starts_at', { ascending: false });
 
             if (error) throw error;
@@ -1406,7 +1406,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 tr.innerHTML = `
                     <td>${r.clients?.name || 'Н/Д'}</td>
                     <td>${r.clients?.phone || 'Н/Д'}</td>
-                    <td>${r.bike_id || '—'}</td>
+                    <td>
+                        <div>Велосипед: ${r.bike_id || '—'}</div>
+                        ${r.rental_batteries && r.rental_batteries.length > 0
+                            ? `<small style="color: #666;">АКБ: ${r.rental_batteries.map(rb => rb.batteries.serial_number).join(', ')}</small>`
+                            : ''
+                        }
+                    </td>
                     <td>${start}</td>
                     <td>${end}</td>
                     <td>${typeof r.total_paid_rub === 'number' ? r.total_paid_rub : 0}</td>
