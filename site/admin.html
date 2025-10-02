@@ -992,30 +992,31 @@
         <button type="button" id="add-note-modal-submit" class="btn btn-primary">Добавить</button>
       </div>
     </div>
+  </div>
 
-    <!-- НОВОЕ МОДАЛЬНОЕ ОКНО: Выбор аккумуляторов для аренды -->
-    <div id="assign-batteries-modal" class="overlay hidden">
-      <div class="modal" style="max-width: 550px;">
-        <div class="modal-header">
-          <h3>Выберите аккумуляторы для аренды</h3>
-          <button id="assign-batteries-cancel-btn" class="close-btn">&times;</button>
-        </div>
-        <div class="modal-body">
-          <form id="assign-batteries-form">
-            <input type="hidden" id="assign-batteries-rental-id">
-            <p>Выберите один или несколько свободных аккумуляторов:</p>
-            <div id="battery-select-list"
-              style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px; padding: 10px;">
-              <!-- Список АКБ будет загружен сюда через JS -->
-            </div>
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" id="assign-batteries-submit-btn" class="btn btn-primary">Подтвердить и
-            активировать</button>
-        </div>
+  <!-- НОВОЕ МОДАЛЬНОЕ ОКНО: Выбор аккумуляторов для аренды -->
+  <div id="assign-batteries-modal" class="overlay hidden">
+    <div class="modal" style="max-width: 550px;">
+      <div class="modal-header">
+        <h3>Выберите аккумуляторы для аренды</h3>
+        <button id="assign-batteries-cancel-btn" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="assign-batteries-form">
+          <input type="hidden" id="assign-batteries-rental-id">
+          <p>Выберите один или несколько свободных аккумуляторов:</p>
+          <div id="battery-select-list"
+            style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px; padding: 10px;">
+            <!-- Список АКБ будет загружен сюда через JS -->
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="assign-batteries-submit-btn" class="btn btn-primary">Подтвердить и
+          активировать</button>
       </div>
     </div>
+  </div>
 
   </div>
 </body>

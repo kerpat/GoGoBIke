@@ -2322,47 +2322,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             batterySelectList.appendChild(label);
                         });
                     }
-                    console.log('Показываем модальное окно...');
-
-                    // Убедимся, что элемент в body (теперь он должен быть там по умолчанию)
-                    if (!document.body.contains(assignBatteriesModal)) {
-                        console.log('Модальное окно не в body, перемещаем...');
-                        document.body.appendChild(assignBatteriesModal);
-                    }
-
-                    // Принудительный reset стилей
-                    assignBatteriesModal.style.cssText = '';
-                    void assignBatteriesModal.offsetHeight; // Reflow
-
-                    // Применяем нужные стили
                     assignBatteriesModal.classList.remove('hidden');
-
-                    console.log('Классы ПОСЛЕ удаления hidden:', assignBatteriesModal.className);
-
-                    // Добавляем временную красную рамку для отладки
-                    assignBatteriesModal.style.border = '5px solid red';
-
-                    // Прокручиваем к модальному окну
-                    assignBatteriesModal.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-                    // Проверяем computed styles
-                    const computedStyle = window.getComputedStyle(assignBatteriesModal);
-                    console.log('Computed display:', computedStyle.display);
-                    console.log('Computed opacity:', computedStyle.opacity);
-                    console.log('Computed visibility:', computedStyle.visibility);
-                    console.log('Computed z-index:', computedStyle.zIndex);
-
-                    // Проверяем позицию элемента СРАЗУ
-                    const rect = assignBatteriesModal.getBoundingClientRect();
-                    console.log('Позиция модального окна СРАЗУ:', rect);
-
-                    // Проверяем позицию через 100ms после reflow
-                    setTimeout(() => {
-                        const rectAfter = assignBatteriesModal.getBoundingClientRect();
-                        console.log('Позиция модального окна ПОСЛЕ REFLOW:', rectAfter);
-                    }, 100);
-
-                    console.log('Модальное окно должно быть видно с красной рамкой!');
                 } catch (err) {
                     console.error('Ошибка при загрузке аккумуляторов:', err);
                     alert('Ошибка загрузки списка аккумуляторов: ' + err.message);
