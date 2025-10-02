@@ -415,6 +415,31 @@
         btn.textContent = isLoading ? textBusy : textIdle;
     }
 
+    // Функция для опроса создания аренды
+    async function pollForRentalCreation(userId, maxAttempts = 10, interval = 2000) {
+        for (let i = 0; i < maxAttempts; i++) {
+            console.log(`Опрос создания аренды, попытка ${i + 1}...`);
+            const { data: rental, error } = await supabase
+                .from('rentals')
+                .select('id, status')
+                .eq('user_id', userId)
+                .eq('status', 'awaiting_battery_assignment') // Мы ждем именно этот статус
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single();
+
+            if (rental && !error) {
+                console.log('Новая аренда найдена!', rental);
+                return rental; // Успех!
+            }
+
+            // Ждем перед следующей попыткой
+            await new Promise(resolve => setTimeout(resolve, interval));
+        }
+        // Если цикл закончился, значит, время вышло
+        throw new Error('Не удалось подтвердить создание аренды. Пожалуйста, обновите страницу или обратитесь в поддержку.');
+    }
+
     // Определение цвета прогресс-бара в зависимости от процента заполнения
     function getProgressColor(progress) {
         if (progress > 85) {
@@ -1283,17 +1308,34 @@ function initializeMainScreenEventListeners() {
                     const data = await response.json();
                     if (!response.ok) throw new Error(data.error || 'Неизвестная ошибка');
 
-                    // --- ВОТ ИСПРАВЛЕНИЕ ---
                     if (data.confirmation_url) {
-                        // Сценарий 1: Карта не привязана. Перенаправляем на оплату.
+                        // Сценарий 1: Карта не привязана. Отправляем на оплату.
                         window.location.href = data.confirmation_url;
+
                     } else if (data.status === 'succeeded' || data.status === 'pending') {
-                        // Сценарий 2: Карта привязана, автоплатеж прошел.
-                        // Просто закрываем модалки и обновляем интерфейс.
-                        console.log('Автоплатеж прошел успешно, обновляем UI...');
+                        // Сценарий 2: Карта привязана, автоплатеж запущен.
+                        console.log('Автоплатеж прошел, начинаем опрос для подтверждения аренды...');
+
+                        // 1. Закрываем все модальные окна
                         document.getElementById('tariff-detail-modal').classList.add('hidden');
                         document.getElementById('tariff-modal').classList.add('hidden');
-                        loadUserData(); // Эта функция перерисует экран в состояние ожидания АКБ.
+
+                        // 2. СРАЗУ показываем экран ожидания (чтобы пользователь видел, что что-то происходит)
+                        const mainContent = document.querySelector('.app-main');
+                        renderPendingBatteryView(mainContent);
+
+                        try {
+                            // 3. Запускаем опрос в фоновом режиме, чтобы дождаться создания аренды
+                            await pollForRentalCreation(userId);
+                            // Если мы дошли сюда, значит аренда создана. Экран уже правильный.
+                            console.log('Подтверждение аренды успешно получено.');
+                        } catch (pollError) {
+                            // 4. Если за 20 секунд аренда не появится, сообщаем об ошибке
+                            alert(pollError.message);
+                            // Возвращаем на стандартный экран
+                            loadUserData();
+                        }
+
                     } else {
                         // Сценарий 3: Что-то пошло не так.
                         throw new Error('Не удалось получить ссылку на оплату или подтверждение платежа.');
