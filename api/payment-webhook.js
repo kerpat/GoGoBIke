@@ -151,8 +151,8 @@ async function processSucceededPayment(notification) {
     if (payment_type === 'booking') {
         console.log(`[БРОНИРОВАНИЕ] userId: ${userId}, сумма: ${paymentAmount}`);
 
-        // Создаем бронь на 2 часа
-        const expires_at = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(); // +2 часа
+        // 1. Создаем бронь на 2 часа
+        const expires_at = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
 
         const { data: newBooking, error: bookingError } = await supabaseAdmin
             .from('bookings')
@@ -160,29 +160,49 @@ async function processSucceededPayment(notification) {
                 user_id: userId,
                 expires_at: expires_at,
                 status: 'active',
-                cost_rub: paymentAmount // <-- ВОТ ЭТА СТРОКА
+                cost_rub: paymentAmount
             })
             .select('id')
             .single();
 
         if (bookingError) {
+            // Если бронь создать не удалось, это критично. Выбрасываем ошибку.
             throw new Error(`Не удалось создать бронь: ${bookingError.message}`);
         }
         console.log(`[БРОНИРОВАНИЕ] Создана бронь #${newBooking.id} до ${expires_at}.`);
 
-        // Записать платеж в историю
+        // +++ ВАЖНЕЙШЕЕ ИЗМЕНЕНИЕ: ПОПОЛНЯЕМ БАЛАНС ПОЛЬЗОВАТЕЛЯ +++
+        console.log(`[БАЛАНС] Пополняем баланс для userId: ${userId} на сумму ${paymentAmount} ₽`);
+        const { error: balanceError } = await supabaseAdmin.rpc('add_to_balance', {
+            client_id_to_update: userId,
+            amount_to_add: paymentAmount
+        });
+
+        if (balanceError) {
+            // Это плохо, но не критично для YooKassa. Бронь создана. Логируем ошибку для ручного разбора.
+            console.error(`[КРИТИЧЕСКАЯ ОШИБКА] Бронь #${newBooking.id} создана, но не удалось пополнить баланс для userId ${userId}:`, balanceError.message);
+        } else {
+            console.log(`[БАЛАНС] Баланс для userId: ${userId} успешно пополнен.`);
+        }
+
+        // 2. Записываем платеж в историю, как и раньше
         const { error: paymentError } = await supabaseAdmin.from('payments').insert({
             client_id: userId,
-            booking_id: newBooking.id,
+            booking_id: newBooking.id, // Связываем с бронью
             amount_rub: paymentAmount,
             status: 'succeeded',
             payment_type: 'booking',
             yookassa_payment_id: yookassaPaymentId
         });
-        if (paymentError) throw new Error(`Не удалось записать платеж бронирования: ${paymentError.message}`);
+
+        if (paymentError) {
+            // Тоже логируем, но не останавливаем процесс
+            console.error(`[ОШИБКА ЛОГА] Не удалось записать платеж бронирования: ${paymentError.message}`);
+        }
 
         console.log(`[БРОНИРОВАНИЕ] Платеж ${yookassaPaymentId} успешно обработан и связан с бронью #${newBooking.id}.`);
-        return; // Завершаем после обработки бронирования
+
+        return; // Завершаем, так как это был целевой платеж за бронь
     }
 
     // --- Логика для стандартных пополнений (если это не аренда и не привязка карты) ---
