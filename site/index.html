@@ -468,6 +468,12 @@
         btn.textContent = isLoading ? textBusy : textIdle;
     }
 
+    // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+    const showToast = (toastElement, duration = 3000) => {
+        toastElement.classList.remove('hidden');
+        setTimeout(() => toastElement.classList.add('hidden'), duration);
+    };
+
     // Функция для опроса создания аренды
     async function pollForRentalCreation(userId, maxAttempts = 10, interval = 2000) {
         for (let i = 0; i < maxAttempts; i++) {
@@ -1311,11 +1317,6 @@ function initializeMainScreenEventListeners() {
             })();
         });
 
-        // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-        const showToast = (toastElement, duration = 3000) => {
-            toastElement.classList.remove('hidden');
-            setTimeout(() => toastElement.classList.add('hidden'), duration);
-        };
         const changeBikeImage = (newSrc) => {
             mainBikeImage.classList.add('fade-out');
             setTimeout(() => {
