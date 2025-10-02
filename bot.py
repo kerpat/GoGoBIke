@@ -37,6 +37,11 @@ BOT_REGISTER_API = 'https://go-go-b-ike.vercel.app/api/auth'
 ADMIN_SECRET_KEY = 'your_super_secret_admin_key' # Секрет для уведомлений от админки
 WEB_APP_URL = 'https://go-go-b-ike.vercel.app' # URL вашего основного веб-приложения
 
+# --- ВОТ ЭТОТ НОВЫЙ БЛОК ---
+# Добавь сюда ID админов, которым будут приходить уведомления
+ADMIN_IDS = [123456789, 987654321]  # <--- ЗАМЕНИ НА РЕАЛЬНЫЕ ID АДМИНОВ
+# --- КОНЕЦ НОВОГО БЛОКА ---
+
 # Supabase settings
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_SERVICE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
@@ -126,6 +131,37 @@ def get_skip_keyboard(text: str = "Пропустить") -> InlineKeyboardMarku
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=text, callback_data="skip")]
     ])
+
+# --- ВОТ ЭТА НОВАЯ ФУНКЦИЯ ---
+async def notify_admins_about_new_user(user_name: str, user_id: int):
+    """Отправляет уведомление всем админам о новом пользователе."""
+    if not ADMIN_IDS:
+        logger.warning("Список ADMIN_IDS пуст, уведомления админам не отправлены.")
+        return
+
+    text = (
+        f"🔔 *Новая заявка на верификацию!*\n\n"
+        f"Пользователь: *{user_name}*\n"
+        f"ID пользователя: `{user_id}`\n\n"
+        f"Пожалуйста, проверьте анкету в панели администратора."
+    )
+
+    admin_keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="➡️ Открыть админ-панель", url=f"{WEB_APP_URL}/admin.html")]
+    ])
+
+    for admin_id in ADMIN_IDS:
+        try:
+            await bot.send_message(
+                chat_id=admin_id,
+                text=text,
+                parse_mode='Markdown',
+                reply_markup=admin_keyboard
+            )
+            logger.info(f"Уведомление о новом пользователе {user_name} отправлено админу {admin_id}")
+        except Exception as e:
+            logger.error(f"Не удалось отправить уведомление админу {admin_id}: {e}")
+# --- КОНЕЦ НОВОЙ ФУНКЦИИ ---
 
 # --- Функции переходов ---
 # Функция go_to_inn удалена, так как больше не нужна
@@ -640,6 +676,11 @@ async def process_video_note(message: Message, state: FSMContext):
 
                 result = await response.json()
                 if result.get('success'):
+
+                    # --- ВОТ ЭТУ СТРОЧКУ НУЖНО ДОБАВИТЬ ---
+                    await notify_admins_about_new_user(user_name=user_data.get('name'), user_id=user_id)
+                    # --- КОНЕЦ ДОБАВЛЕНИЯ ---
+
                     await message.answer(
                         "✅ *Регистрация завершена!*\n\n"
                         "🎊 Ваши данные приняты и отправлены на проверку.\n\n"
