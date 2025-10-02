@@ -137,6 +137,84 @@ async function processSucceededPayment(notification) {
         return;
     }
 
+    if (payment_type === 'renewal') {
+        console.log(`[ПРОДЛЕНИЕ] Обработка для userId: ${userId}`);
+        const { rentalId, days } = metadata;
+        
+        if (!rentalId) {
+            throw new Error('rentalId отсутствует в metadata для продления');
+        }
+
+        const amountToDebit = Number.parseFloat(debit_from_balance) || 0;
+        if (amountToDebit > 0) {
+            console.log(`[ПРОДЛЕНИЕ] Списываем с баланса ${amountToDebit} ₽`);
+            const { error } = await supabaseAdmin.rpc('add_to_balance', { 
+                client_id_to_update: userId, 
+                amount_to_add: -amountToDebit 
+            });
+            if (error) {
+                throw new Error('Failed to debit from balance for renewal.');
+            }
+        }
+
+        // Получаем текущую аренду
+        const { data: rental, error: rentalError } = await supabaseAdmin
+            .from('rentals')
+            .select('current_period_ends_at, total_paid_rub')
+            .eq('id', rentalId)
+            .single();
+
+        if (rentalError || !rental) {
+            throw new Error(`Аренда #${rentalId} не найдена`);
+        }
+
+        // Продлеваем на указанное количество дней
+        const daysToAdd = Number.parseInt(days) || 7;
+        const newEndDate = new Date(rental.current_period_ends_at);
+        newEndDate.setDate(newEndDate.getDate() + daysToAdd);
+
+        const totalPaid = (rental.total_paid_rub || 0) + cardPaymentAmount + amountToDebit;
+
+        // Обновляем аренду
+        await supabaseAdmin
+            .from('rentals')
+            .update({ 
+                current_period_ends_at: newEndDate.toISOString(),
+                total_paid_rub: totalPaid
+            })
+            .eq('id', rentalId);
+
+        // Определяем способ оплаты из данных ЮKassa
+        const paymentMethod = getPaymentMethodFromYookassa(payment);
+        
+        // Запись платежа с карты/СБП
+        await supabaseAdmin.from('payments').insert({ 
+            client_id: userId, 
+            rental_id: rentalId, 
+            amount_rub: cardPaymentAmount, 
+            status: 'succeeded', 
+            payment_type: 'renewal',
+            method: paymentMethod,
+            yookassa_payment_id: yookassaPaymentId 
+        });
+        
+        // Запись платежа с баланса (если было списание)
+        if (amountToDebit > 0) {
+            await supabaseAdmin.from('payments').insert({ 
+                client_id: userId, 
+                rental_id: rentalId, 
+                amount_rub: amountToDebit, 
+                status: 'succeeded', 
+                payment_type: 'renewal',
+                method: 'balance',
+                description: 'Частичная оплата продления с баланса' 
+            });
+        }
+
+        console.log(`[ПРОДЛЕНИЕ] Аренда #${rentalId} успешно продлена до ${newEndDate.toISOString()}`);
+        return;
+    }
+
     // --- ОБЫЧНОЕ ПОПОЛНЕНИЕ БАЛАНСА (из твоего рабочего файла) ---
     console.log(`[ПОПОЛНЕНИЕ] Обработка для userId: ${userId} на сумму ${cardPaymentAmount} ₽`);
     if (!userId) {
