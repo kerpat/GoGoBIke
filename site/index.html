@@ -704,77 +704,29 @@
     // +++ НОВАЯ ФУНКЦИЯ ДЛЯ СОЗДАНИЯ БРОНИ +++
     const processBooking = async () => {
         const confirmBtn = document.getElementById('confirm-booking-btn');
-        toggleButtonLoading(confirmBtn, true, 'Забронировать и оплатить', 'Обработка...');
 
         const userId = localStorage.getItem('userId');
         if (!userId) {
             alert('Ошибка авторизации.');
-            toggleButtonLoading(confirmBtn, false, 'Забронировать и оплатить', 'Обработка...');
             return;
         }
+
+        toggleButtonLoading(confirmBtn, true, 'Забронировать и оплатить', 'Обработка...');
 
         try {
             // Сначала получаем стоимость бронирования из настроек
             const { data: settings, error: settingsError } = await supabase
                 .from('app_settings')
                 .select('value')
-                .eq('key', 'booking_cost_rub')
+                .eq('key', 'booking_cost')
                 .single();
 
             if (settingsError && settingsError.code !== 'PGRST116') throw settingsError;
 
-            const bookingCost = settings ? parseFloat(settings.value) : 0;
+            const bookingCost = settings?.value?.cost || 0;
 
-            if (bookingCost <= 0) {
-                alert('Стоимость бронирования не настроена. Обратитесь в поддержку.');
-                toggleButtonLoading(confirmBtn, false, 'Забронировать и оплатить', 'Обработка...');
-                return;
-            }
-
-            // Проверяем баланс клиента
-            const { data: client, error: clientError } = await supabase
-                .from('clients')
-                .select('balance_rub')
-                .eq('id', userId)
-                .single();
-
-            if (clientError) throw new Error('Не удалось получить данные клиента');
-
-            const hasEnoughBalance = client.balance_rub >= bookingCost;
-
-            if (hasEnoughBalance) {
-                // Списываем с баланса и создаем бронь
-                const { error: balanceError } = await supabase.rpc('add_to_balance', {
-                    client_id_to_update: userId,
-                    amount_to_add: -bookingCost
-                });
-                if (balanceError) throw new Error(`Ошибка списания баланса: ${balanceError.message}`);
-
-                const expires_at = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(); // +2 часа
-                const { error: bookingError } = await supabase.from('bookings').insert({
-                    user_id: userId,
-                    expires_at: expires_at,
-                    cost_rub: bookingCost
-                });
-
-                if (bookingError) throw bookingError;
-
-                // Логируем платеж
-                await supabase.from('payments').insert({
-                    client_id: userId,
-                    amount_rub: bookingCost,
-                    status: 'succeeded',
-                    payment_type: 'booking',
-                    payment_method_title: 'Списано с баланса',
-                    description: 'Оплата бронирования велосипеда'
-                });
-
-                document.getElementById('confirm-booking-modal').classList.add('hidden');
-                showToast(bookingSuccessToast); // Используем ваш существующий тост
-                loadUserData(); // Перезагружаем данные, чтобы отобразить экран брони
-
-            } else {
-                // Баланса недостаточно - оплата картой
+            if (bookingCost > 0) {
+                // Платная бронь - ВСЕГДА через карту
                 const response = await fetch('/api/payments', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -782,21 +734,29 @@
                         action: 'create-payment',
                         userId: userId,
                         amount: bookingCost,
-                        type: 'booking'
+                        type: 'booking',
+                        description: 'Оплата бронирования велосипеда'
                     })
                 });
-
                 const data = await response.json();
-                if (!response.ok) throw new Error(data.error || 'Неизвестная ошибка');
+                if (!response.ok) throw new Error(data.error || 'Неизвестная ошибка сервера');
 
                 if (data.confirmation_url) {
                     window.location.href = data.confirmation_url;
                 } else if (data.status === 'succeeded' || data.status === 'pending') {
-                    // Если оплата прошла автоплатежом, просто перезагружаем
                     window.location.href = window.location.origin + window.location.pathname + '?booking_success=true';
                 } else {
                     throw new Error('Не удалось получить ссылку на оплату или подтверждение.');
                 }
+            } else {
+                // Бесплатная бронь (если стоимость = 0)
+                const expires_at = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(); // +2 часа
+                const { error: bookingError } = await supabase.from('bookings').insert({ user_id: userId, expires_at });
+                if (bookingError) throw bookingError;
+
+                document.getElementById('confirm-booking-modal').classList.add('hidden');
+                showToast(bookingSuccessToast); // Используем ваш существующий тост
+                loadUserData(); // Перезагружаем данные, чтобы отобразить экран брони
             }
 
         } catch (err) {
@@ -1357,15 +1317,15 @@ function initializeMainScreenEventListeners() {
                 const { data: settings, error } = await supabase
                     .from('app_settings')
                     .select('value')
-                    .eq('key', 'booking_cost_rub')
+                    .eq('key', 'booking_cost')
                     .single();
 
                 if (error && error.code !== 'PGRST116') throw error;
 
-                const cost = settings ? parseFloat(settings.value) : 0;
+                const cost = settings?.value?.cost || 0;
                 const costElement = document.getElementById('booking-cost-amount');
                 if (costElement) {
-                    costElement.textContent = cost > 0 ? `${cost} ₽` : 'Не настроена';
+                    costElement.textContent = cost > 0 ? `${cost} ₽` : 'Бесплатно';
                 }
             } catch (err) {
                 console.error('Ошибка загрузки стоимости бронирования:', err);
@@ -2288,10 +2248,20 @@ function initializeMainScreenEventListeners() {
 
             if (bookingBtn) {
                 e.preventDefault();
-                // Загружаем стоимость бронирования перед открытием модального окна
-                loadBookingCost().then(() => {
+                supabase.from('app_settings').select('value').eq('key', 'booking_cost').single().then(({data, error}) => {
                     const modal = document.getElementById('confirm-booking-modal');
-                    if (modal) modal.classList.remove('hidden');
+                    if(modal) {
+                        const cost = data?.value?.cost || 0;
+                        const costInfoEl = document.getElementById('booking-cost-info');
+                        if (cost > 0) {
+                            costInfoEl.querySelector('#booking-cost-amount').textContent = `${cost} ₽`;
+                            costInfoEl.querySelector('p:last-child').textContent = 'Сумма будет списана с вашего баланса и зачислена на баланс';
+                            costInfoEl.style.display = 'block';
+                        } else {
+                            costInfoEl.style.display = 'none';
+                        }
+                        modal.classList.remove('hidden');
+                    }
                 });
                 return;
             }
