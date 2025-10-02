@@ -2477,7 +2477,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 authedFetch('/api/admin', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'notify-battery-assignment', rentalId: rentalId })
+                    body: JSON.stringify({ action: 'notify-battery-assignment', rentalId: parseInt(rentalId, 10) })
                 });
                 // --- КОНЕЦ ДОБАВЛЕНИЯ ---
 
