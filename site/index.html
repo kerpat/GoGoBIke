@@ -2249,10 +2249,11 @@ function initializeMainScreenEventListeners() {
             if (bookingBtn) {
                 e.preventDefault();
                 // Перед открытием модалки, загружаем стоимость
-                supabase.from('app_settings').select('value').eq('key', 'booking_cost').single().then(({ data, error }) => {
+                supabase.from('app_settings').select('value').eq('key', 'booking_cost_rub').single().then(({ data, error }) => {
                     const modal = document.getElementById('confirm-booking-modal');
                     if (modal) {
-                        const cost = data?.value?.cost || 0;
+                        // Значение теперь просто число, а не объект {"cost": ...}
+                        const cost = parseFloat(data?.value) || 0;
                         const costInfoEl = document.getElementById('booking-cost-info');
                         const mainTextEl = document.getElementById('booking-main-text');
 
