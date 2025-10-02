@@ -1144,7 +1144,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!batteriesTableBody) return;
         batteriesTableBody.innerHTML = '<tr><td colspan="4">Загрузка...</td></tr>';
         try {
-            const response = await authedFetch('/api/batteries', {
+            const response = await authedFetch('/api/admin', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'get-batteries' })
@@ -1219,7 +1219,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const action = id ? 'update-battery' : 'create-battery';
                 const body = id ? { ...batteryData, id } : batteryData;
-                const response = await authedFetch('/api/batteries', {
+                const response = await authedFetch('/api/admin', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action, ...body })
@@ -1241,7 +1241,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (editBtn) {
                 const id = editBtn.dataset.id;
                 try {
-                    const response = await authedFetch('/api/batteries', {
+                    const response = await authedFetch('/api/admin', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ action: 'get-batteries' })
@@ -1263,7 +1263,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const id = deleteBtn.dataset.id;
                 if (confirm(`Вы уверены, что хотите удалить аккумулятор?`)) {
                     try {
-                        const response = await authedFetch('/api/batteries', {
+                        const response = await authedFetch('/api/admin', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ action: 'delete-battery', id })
