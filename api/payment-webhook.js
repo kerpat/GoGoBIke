@@ -45,7 +45,7 @@ async function processSucceededPayment(notification) {
     const payment = notification.object;
     const metadata = payment.metadata || {};
 
-    const { userId, tariffId, payment_type, debit_from_balance } = metadata;
+    const { userId, tariffId, payment_type, debit_from_balance, days } = metadata;
     const cardPaymentAmount = Number.parseFloat(payment.amount?.value ?? '0');
     const yookassaPaymentId = payment.id;
     const supabaseAdmin = createSupabaseAdmin();
@@ -112,16 +112,25 @@ async function processSucceededPayment(notification) {
             if (error) { /* ... логика возврата ... */ throw new Error('Failed to debit from balance.'); }
         }
 
-        // Твоя логика создания аренды (скопирована из твоего старого файла)
+        // Логика создания аренды
         const { data: availableBikes, error: bikesError } = await supabaseAdmin.from('bikes').select('id').eq('status', 'available').eq('tariff_id', tariffId);
         if (bikesError || !availableBikes || availableBikes.length === 0) { throw new Error(`Нет свободных велосипедов для тарифа ${tariffId}.`); }
         const bikeId = availableBikes[0].id;
         await supabaseAdmin.from('bikes').update({ status: 'rented' }).eq('id', bikeId);
-        const { data: tariffData } = await supabaseAdmin.from('tariffs').select('duration_days').eq('id', tariffId).single();
+        
+        // Определяем длительность аренды: используем days из metadata или берем из тарифа
+        let rentalDays = days ? Number.parseInt(days) : null;
+        if (!rentalDays) {
+            const { data: tariffData } = await supabaseAdmin.from('tariffs').select('duration_days').eq('id', tariffId).single();
+            rentalDays = tariffData?.duration_days || 7;
+        }
+        
         const startDate = new Date();
         const endDate = new Date();
-        endDate.setDate(startDate.getDate() + (tariffData?.duration_days || 7));
+        endDate.setDate(startDate.getDate() + rentalDays);
         const totalPaid = cardPaymentAmount + amountToDebit;
+        
+        console.log(`[АРЕНДА] Создаем аренду на ${rentalDays} дней`);
         const { data: newRental } = await supabaseAdmin.from('rentals').insert({ user_id: userId, bike_id: bikeId, tariff_id: tariffId, starts_at: startDate.toISOString(), current_period_ends_at: endDate.toISOString(), status: 'awaiting_battery_assignment', total_paid_rub: totalPaid }).select('id').single();
 
         // Определяем способ оплаты из данных ЮKassa
@@ -216,6 +225,8 @@ async function processSucceededPayment(notification) {
         newEndDate.setDate(newEndDate.getDate() + daysToAdd);
 
         const totalPaid = (rental.total_paid_rub || 0) + cardPaymentAmount + amountToDebit;
+        
+        console.log(`[ПРОДЛЕНИЕ] Продлеваем аренду #${rentalId} на ${daysToAdd} дней`);
 
         // Обновляем аренду
         await supabaseAdmin
