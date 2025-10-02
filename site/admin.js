@@ -2314,6 +2314,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 assignBatteriesRentalIdInput.value = rentalId;
                 console.log('Значение установлено в поле:', assignBatteriesRentalIdInput.value);
 
+                const searchInput = document.getElementById('battery-search-in-modal');
+                searchInput.value = ''; // Сбрасываем поиск при открытии
+
+                searchInput.addEventListener('input', () => {
+                    const query = searchInput.value.toLowerCase().trim();
+                    const batteryListContainer = document.getElementById('battery-select-list');
+                    batteryListContainer.querySelectorAll('label').forEach(label => {
+                        const batteryName = label.textContent.toLowerCase();
+                        if (batteryName.includes(query)) {
+                            label.style.display = 'block';
+                        } else {
+                            label.style.display = 'none';
+                        }
+                    });
+                });
+
                 try {
                     console.log('Загружаем аккумуляторы из базы данных...');
                     // Загружаем только свободные аккумуляторы

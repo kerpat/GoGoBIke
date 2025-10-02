@@ -301,17 +301,6 @@
         <button class="btn btn-primary" id="rent-btn" data-action="rent">Арендовать</button>
     </div>
 </div>
-<div id="topup-modal" class="modal-overlay hidden">
-    <div class="modal-content">
-        <button class="modal-close" id="topup-modal-close-btn">&times;</button>
-        <h2>Пополнение баланса</h2>
-        <div class="modal-form-group">
-            <label for="amount-input" style="text-align: center;">Сумма пополнения</label>
-            <input type="number" id="amount-input" placeholder="Введите сумму в ₽">
-        </div>
-        <button class="btn btn-primary" id="pay-sbp-btn">Пополнить</button>
-    </div>
-</div>
 <div id="id-input-modal" class="modal-overlay hidden">
     <div class="modal-content">
         <button class="modal-close" id="id-input-modal-close-btn">&times;</button>
@@ -962,6 +951,9 @@ function initializeMainScreenEventListeners() {
                 promptModal.classList.remove('hidden');
             }
 
+            // Обновляем данные пользователя после оплаты
+            loadUserData();
+
             // (Опционально, но рекомендуется) Очищаем URL, чтобы при перезагрузке
             // страницы модальное окно не появилось снова.
             // Это заменяет URL в истории браузера без перезагрузки страницы.
@@ -1034,10 +1026,6 @@ function initializeMainScreenEventListeners() {
         const bookingListModalCloseBtn = document.getElementById('booking-list-modal-close-btn');
         const bikeList = document.querySelector('.bike-list');
         const balanceCard = document.getElementById('balance-card');
-        const topupModal = document.getElementById('topup-modal');
-        const topupModalCloseBtn = document.getElementById('topup-modal-close-btn');
-        const payBtn = document.getElementById('pay-sbp-btn');
-        const amountInput = document.getElementById('amount-input');
         const notificationToast = document.getElementById('notification-toast');
         const successToast = document.getElementById('success-toast');
         const successAmountSpan = document.getElementById('success-amount');
@@ -1281,7 +1269,7 @@ function initializeMainScreenEventListeners() {
                     const response = await fetch('/api/payments', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'create-payment', userId: userId, tariffId: tariff.id, bikeCode: bikeCode, amount: cost, days: selectedExt ? selectedExt.days : undefined })
+                        body: JSON.stringify({ action: 'create-payment', userId: userId, tariffId: tariff.id, bikeCode: bikeCode, amount: cost, days: selectedExt ? selectedExt.days : undefined, return_url: window.location.origin + window.location.pathname + '?payment_success=true' })
                     });
 
                     const data = await response.json();
@@ -1827,62 +1815,13 @@ function initializeMainScreenEventListeners() {
             }
         });
 
-        [qrModalCloseBtn, idInputModalCloseBtn, bookingListModalCloseBtn, topupModalCloseBtn].forEach(btn => {
+        [qrModalCloseBtn, idInputModalCloseBtn, bookingListModalCloseBtn].forEach(btn => {
             btn.addEventListener('click', () => btn.closest('.modal-overlay').classList.add('hidden'));
         });
-        [qrModal, idInputModal, bookingListModal, topupModal].forEach(modal => {
+        [qrModal, idInputModal, bookingListModal].forEach(modal => {
             modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
         });
 
-        balanceCard.addEventListener('click', () => topupModal.classList.remove('hidden'));
-        payBtn.addEventListener('click', async () => {
-    const amount = parseFloat(amountInput.value);
-    if (isNaN(amount) || amount <= 0) {
-        alert('Пожалуйста, введите корректную сумму.');
-        return;
-    }
-
-    const userId = localStorage.getItem('userId');
-    if (!userId) {
-        alert('Ошибка: не удалось определить пользователя.');
-        return;
-    }
-    
-    payBtn.disabled = true;
-    payBtn.textContent = 'Создаем счет...';
-
-    try {
-        const response = await fetch('/api/payments', {
-            method: 'POST',
-            body: JSON.stringify({
-                action: 'create-payment',
-                userId: userId,
-                amount: amount // Передаем сумму для пополнения
-            })
-        });
-
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Неизвестная ошибка сервера');
-
-        if (data.confirmation_url) {
-            // Если карты нет, отправляем на страницу оплаты
-            window.location.href = data.confirmation_url;
-        } else if (data.status === 'pending' || data.status === 'succeeded') {
-            // Если карта есть и автосписание прошло
-            topupModal.classList.add('hidden');
-            alert('Баланс будет пополнен в течение минуты. Вы получите уведомление.');
-            // В будущем здесь нужно будет обновить баланс пользователя, запросив его с сервера
-        } else {
-            throw new Error('Произошла неизвестная ошибка при обработке платежа.');
-        }
-
-    } catch(error) {
-        alert('Ошибка пополнения: ' + error.message);
-    } finally {
-        payBtn.disabled = false;
-        payBtn.textContent = 'Пополнить';
-    }
-});
 
 
 
