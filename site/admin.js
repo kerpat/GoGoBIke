@@ -2399,9 +2399,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (createRentalBtn) {
                 const bookingId = createRentalBtn.dataset.bookingId;
-                if (confirm(`Вы уверены, что хотите создать аренду из брони #${bookingId}?`)) {
-                    alert("Логика создания аренды из брони еще не реализована.");
-                    // Здесь будет ваш вызов функции для создания аренды
+                if (confirm(`Клиент пришел? Бронь #${bookingId} будет закрыта.`)) {
+                    supabase.from('bookings').update({ status: 'completed' }).eq('id', bookingId)
+                        .then(({ error }) => {
+                            if (error) {
+                                alert('Ошибка закрытия брони: ' + error.message);
+                            } else {
+                                alert('Бронь успешно закрыта!');
+                                loadBookings();
+                            }
+                        });
                 }
             }
 
