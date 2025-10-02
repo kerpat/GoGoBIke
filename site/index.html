@@ -360,14 +360,14 @@
     <div class="modal-content">
         <button class="modal-close" id="confirm-booking-close-btn">&times;</button>
         <h2>Бронирование велосипеда</h2>
-        <p style="color: var(--text-secondary); margin: 20px 0; line-height: 1.5;">
+        <p id="booking-main-text" style="color: var(--text-secondary); margin: 20px 0; line-height: 1.5;">
             Вы забронируете электровелосипед на <strong>2 часа</strong>. Пожалуйста, подъедьте к точке выдачи до истечения этого времени.
         </p>
-        <div id="booking-cost-info" style="background-color: var(--card-bg); padding: 15px; border-radius: 12px; margin: 15px 0;">
-            <p style="margin: 0; font-weight: 500;">Стоимость бронирования: <span id="booking-cost-amount" style="color: var(--primary-color); font-weight: 600;">Загрузка...</span></p>
-            <p style="margin: 5px 0 0 0; font-size: 0.9rem; color: var(--text-secondary);">Сумма будет списана с вашего баланса</p>
+        <div id="booking-cost-info" style="display: none; background-color: var(--card-bg); padding: 15px; border-radius: 12px; margin: 15px 0;">
+            <p style="margin: 0; font-weight: 500;">Стоимость бронирования: <span id="booking-cost-amount" style="font-weight: 600;"></span></p>
+            <p id="booking-payment-method-text" style="margin: 5px 0 0 0; font-size: 0.9rem; color: var(--text-secondary);"></p>
         </div>
-        <p class="disclaimer-text">Если вы не заберете велосипед, бронь автоматически отменится, но оплата останется на вашем балансе.</p>
+        <p class="disclaimer-text">Если вы не заберете велосипед, бронь отменится, а деньги останутся на вашем балансе.</p>
         <button class="btn btn-primary" id="confirm-booking-btn">Забронировать и оплатить</button>
     </div>
 </div>
@@ -2248,17 +2248,22 @@ function initializeMainScreenEventListeners() {
 
             if (bookingBtn) {
                 e.preventDefault();
-                supabase.from('app_settings').select('value').eq('key', 'booking_cost').single().then(({data, error}) => {
+                // Перед открытием модалки, загружаем стоимость
+                supabase.from('app_settings').select('value').eq('key', 'booking_cost').single().then(({ data, error }) => {
                     const modal = document.getElementById('confirm-booking-modal');
-                    if(modal) {
+                    if (modal) {
                         const cost = data?.value?.cost || 0;
                         const costInfoEl = document.getElementById('booking-cost-info');
+                        const mainTextEl = document.getElementById('booking-main-text');
+
                         if (cost > 0) {
                             costInfoEl.querySelector('#booking-cost-amount').textContent = `${cost} ₽`;
-                            costInfoEl.querySelector('p:last-child').textContent = 'Сумма будет списана с вашего баланса и зачислена на баланс';
+                            costInfoEl.querySelector('#booking-payment-method-text').textContent = 'Сумма будет списана с вашей карты и зачислена на баланс';
                             costInfoEl.style.display = 'block';
+                            mainTextEl.style.display = 'none'; // Скрываем основной текст
                         } else {
                             costInfoEl.style.display = 'none';
+                            mainTextEl.style.display = 'block'; // Показываем основной текст для бесплатной брони
                         }
                         modal.classList.remove('hidden');
                     }
