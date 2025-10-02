@@ -47,9 +47,13 @@ async function processSucceededPayment(notification) {
     const yookassaPaymentId = payment.id;
     const supabaseAdmin = createSupabaseAdmin();
 
-    if (payment.payment_method?.saved && userId) {
-        console.log(`[СОХРАНЕНИЕ МЕТОДА] для userId: ${userId}`);
-        await supabaseAdmin.from('clients').update({ yookassa_payment_method_id: payment.payment_method.id, autopay_enabled: true }).eq('id', userId);
+    // Сохраняем метод оплаты, если он есть и userId указан
+    if (payment.payment_method?.id && userId) {
+        console.log(`[СОХРАНЕНИЕ МЕТОДА] для userId: ${userId}, method_id: ${payment.payment_method.id}`);
+        await supabaseAdmin.from('clients').update({ 
+            yookassa_payment_method_id: payment.payment_method.id, 
+            autopay_enabled: true 
+        }).eq('id', userId);
     }
 
     if (payment_type === 'save_card') {
