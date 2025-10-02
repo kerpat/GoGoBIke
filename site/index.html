@@ -20,65 +20,19 @@
     text-align: center;
 }
 
-/* === СТИЛИ ДЛЯ ОТОБРАЖЕНИЯ АККУМУЛЯТОРОВ === */
-
-/* Контейнер для информации об оборудовании */
-.rental-equipment-info {
-    display: flex;
-    flex-direction: column; /* Элементы друг под другом */
-    align-items: flex-start; /* Выравнивание по левому краю */
-    gap: 8px; /* Отступ между "В комплекте" и списком АКБ */
-    padding: 10px 15px;
-    background-color: var(--card-bg); /* Легкий фон, как у карточек */
-    border-radius: 16px;
-    width: 100%;
-    margin-bottom: 20px; /* Отступ до прогресс-бара */
-}
-
-/* Лейбл "В комплекте:" */
-.equipment-label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: var(--text-secondary); /* Приглушенный цвет */
-}
-
-.equipment-label svg {
-    stroke: var(--text-secondary); /* Цвет иконки совпадает с текстом */
-    width: 16px;
-    height: 16px;
-}
-
-/* Контейнер для самих чипов с АКБ */
-.battery-chips {
-    display: flex;
-    flex-wrap: wrap; /* Позволяет чипам переноситься на новую строку */
-    gap: 8px; /* Отступ между чипами */
-}
-
-/* Стиль одного чипа с номером аккумулятора */
-.battery-chip {
-    display: inline-flex; /* Чтобы блок был по размеру контента */
-    align-items: center;
-    gap: 8px; /* Расстояние между иконкой и текстом */
-    background-color: #ffffff; /* Белый фон */
-    border: 1px solid var(--border); /* Тонкая рамка */
-    padding: 6px 12px;
-    border-radius: 20px; /* Скругление для формы "таблетки" */
+/* === СТИЛИ ДЛЯ ОДНОСТРОЧНОГО СПИСКА АКБ === */
+.battery-info-line {
+    text-align: center;
     font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--dark-green);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Легкая тень */
+    color: var(--text-secondary);
+    margin: 10px 0 20px 0; /* Отступы сверху и снизу */
+    padding: 0 15px; /* Боковые отступы, чтобы текст не прилипал к краям */
+    line-height: 1.5; /* Для читаемости, если список перенесется на 2 строки */
 }
 
-/* Стили для SVG-иконки внутри чипа */
-.battery-chip svg {
-    width: 18px; /* Оптимальный размер иконки */
-    height: 18px;
-    stroke: var(--icon-green); /* Фирменный зеленый цвет */
-    stroke-width: 2;
+.battery-info-line strong {
+    color: var(--dark-green); /* Делаем лейбл "АКБ:" чуть темнее */
+    font-weight: 600;
 }
     </style>
 </head>
@@ -549,17 +503,8 @@
                 <img src="bike-delivery.png" alt="Rented Electric bike" class="bike-image" width="1536" height="1024" decoding="async" fetchpriority="high">
             </div>
 
-            <!-- НОВЫЙ БЛОК С АКБ -->
-            <div class="rental-equipment-info">
-                <div class="equipment-label">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-                    </svg>
-                    <span>В комплекте:</span>
-                </div>
-                <div class="battery-chips" id="rental-batteries-list"></div>
-            </div>
+            <!-- НОВЫЙ, УПРОЩЕННЫЙ БЛОК АКБ -->
+            <div class="battery-info-line" id="rental-batteries-list-line"></div>
 
             <div class="progress-section">
                 <div class="progress-bar-container"><div class="progress-bar" style="width: ${progress}%; background-color: ${progressBarColor};"></div></div>
@@ -600,33 +545,30 @@
             </div>
         `;
 
-        // ЗАГРУЖАЕМ И ОТОБРАЖАЕМ АККУМУЛЯТОРЫ
+        // ЗАГРУЖАЕМ И ОТОБРАЖАЕМ АККУМУЛЯТОРЫ В ОДНУ СТРОКУ
         try {
             const { data: batteries, error } = await supabase
                 .from('rental_batteries')
                 .select('batteries(serial_number)')
                 .eq('rental_id', rental.id);
 
-            const batteryList = document.getElementById('rental-batteries-list');
-            if (batteries && batteries.length > 0 && batteryList) {
-                batteries.forEach(rb => {
-                    const chip = document.createElement('div');
-                    chip.className = 'battery-chip';
-                    chip.innerHTML = `
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-                        </svg>
-                        ${rb.batteries.serial_number}
-                    `;
-                    batteryList.appendChild(chip);
-                });
-            } else if (batteryList) {
-                // Если АКБ нет, показываем placeholder
-                batteryList.innerHTML = '<span style="color: #7a9a95; font-size: 0.85rem;">Информация недоступна</span>';
+            const batteryLine = document.getElementById('rental-batteries-list-line');
+            if (batteryLine) {
+                if (batteries && batteries.length > 0) {
+                    // Собираем все серийные номера в одну строку через запятую
+                    const serialNumbers = batteries.map(rb => rb.batteries.serial_number).join(', ');
+                    batteryLine.innerHTML = `<strong>АКБ:</strong> ${serialNumbers}`;
+                } else {
+                    // Если АКБ нет, показываем placeholder
+                    batteryLine.innerHTML = '<strong>АКБ:</strong> Информация недоступна';
+                }
             }
         } catch (err) {
             console.error('Не удалось загрузить список аккумуляторов:', err);
+            const batteryLine = document.getElementById('rental-batteries-list-line');
+            if (batteryLine) {
+                batteryLine.innerHTML = '<strong>АКБ:</strong> Ошибка загрузки';
+            }
         }
 
         // Используем делегирование событий, чтобы не навешивать слушатель каждый раз
