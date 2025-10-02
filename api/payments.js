@@ -214,6 +214,13 @@ async function handleCreatePayment(body) {
         throw new Error('Invalid final amount for payment.');
     }
 
+    // <<< НАЧАЛО ИСПРАВЛЕНИЯ: ВОЗВРАЩАЕМ ЭТОТ БЛОК НА МЕСТО >>>
+    const normalizedPhone = normalizePhone(clientData.phone);
+    if (!normalizedPhone) {
+        throw new Error(`Client ${userId} has no phone number for YooKassa receipts.`);
+    }
+    // <<< КОНЕЦ ИСПРАВЛЕНИЯ >>>
+
     if (bikeCode) description = `Bike rental payment #${bikeCode}`;
     if (body.type === 'renewal') description = `Продление аренды #${body.rentalId}`;
     const idempotenceKey = crypto.randomUUID();
@@ -232,6 +239,17 @@ async function handleCreatePayment(body) {
             debit_from_balance: amountToDebitFromBalance // Будет 0 для обычных пополнений
         },
         save_payment_method: true,
+        receipt: {
+            customer: { phone: normalizedPhone }, // Теперь переменная существует
+            items: [{
+                description,
+                quantity: '1.00',
+                amount: { value: amount.toFixed(2), currency: 'RUB' },
+                vat_code: '1',
+                payment_mode: 'full_payment',
+                payment_subject: 'service'
+            }]
+        },
         receipt: {
             customer: { phone: normalizedPhone },
             items: [{
