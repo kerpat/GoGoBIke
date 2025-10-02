@@ -119,7 +119,7 @@ async function processSucceededPayment(notification) {
                 tariff_id: tariffId,
                 starts_at: startDate.toISOString(),
                 current_period_ends_at: endDate.toISOString(),
-                status: 'awaiting_contract_signing', // Новый статус!
+                status: 'awaiting_battery_assignment', // Статус ожидания выбора АКБ
                 total_paid_rub: paymentAmount
             })
             .select('id')
@@ -130,7 +130,7 @@ async function processSucceededPayment(notification) {
             await supabaseAdmin.from('bikes').update({ status: 'available' }).eq('id', bikeId);
             throw new Error(`Не удалось создать аренду: ${rentalError.message}`);
         }
-        console.log(`[АРЕНДА] Создана аренда #${newRental.id} со статусом 'awaiting_contract_signing'.`);
+        console.log(`[АРЕНДА] Создана аренда #${newRental.id} со статусом 'awaiting_battery_assignment'.`);
 
         // 4. Записать платеж в историю
         const { error: paymentError } = await supabaseAdmin.from('payments').insert({

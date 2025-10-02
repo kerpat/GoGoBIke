@@ -119,7 +119,7 @@ async function handleChargeFromBalance({ userId, tariffId, bikeCode, amount, day
         throw new Error(`Не удалось обновить статус велосипеда #${bikeId}: ${bikeUpdateError.message}`);
     }
 
-    // 4. Создать запись об аренде со статусом 'awaiting_contract_signing'
+    // 4. Создать запись об аренде со статусом 'awaiting_battery_assignment'
     const startDate = new Date();
     const endDate = new Date();
     endDate.setDate(startDate.getDate() + duration);
@@ -132,7 +132,7 @@ async function handleChargeFromBalance({ userId, tariffId, bikeCode, amount, day
             tariff_id: tariffId,
             starts_at: startDate.toISOString(),
             current_period_ends_at: endDate.toISOString(),
-            status: 'awaiting_contract_signing', // <-- Единый статус
+            status: 'awaiting_battery_assignment', // Статус ожидания выбора АКБ
             total_paid_rub: rentalCost
         })
         .select('id')
