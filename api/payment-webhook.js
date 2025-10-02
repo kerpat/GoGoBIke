@@ -50,8 +50,9 @@ async function processSucceededPayment(notification) {
         }).eq('id', userId);
     }
 
-    if (payment_type === 'save_card') {
-        console.log('[ЗАВЕРШЕНО] Платеж для привязки карты.');
+    // Handle card verification payments (both explicit save_card and automatic YooKassa verification)
+    if (payment_type === 'save_card' || (payment.payment_method?.saved && !payment_type)) {
+        console.log('[ЗАВЕРШЕНО] Платеж для привязки карты (тип: save_card или автоматическая верификация).');
         return;
     }
 
