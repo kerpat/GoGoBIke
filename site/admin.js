@@ -386,8 +386,8 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             rental: {
                 'active': { text: 'Активна', className: 'status-success' },
-                // ИЗМЕНЕНИЕ: этот статус теперь означает ожидание АКБ
-                'awaiting_contract_signing': { text: 'Ожидает АКБ', className: 'status-warning' },
+                'awaiting_battery_assignment': { text: 'Ожидает АКБ', className: 'status-warning' }, // <-- ДОБАВЛЕНА НОВАЯ СТРОКА
+                'awaiting_contract_signing': { text: 'Ожидает подписания', className: 'status-warning' }, // <-- ВОЗВРАЩЕН СТАРЫЙ ТЕКСТ
                 'completed_by_admin': { text: 'Завершено админом', className: 'status-info' },
                 'pending_assignment': { text: 'Ожидает велосипед', className: 'status-warning' },
                 'pending_return': { text: 'Ожидает сдачи', className: 'status-warning' },

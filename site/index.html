@@ -689,7 +689,7 @@ if (status === 'approved') {
         .from('rentals')
         .select('*, tariffs(*)')
         .eq('user_id', userId)
-        .in('status', ['active', 'overdue', 'pending_return', 'awaiting_contract_signing'])
+        .in('status', ['active', 'overdue', 'pending_return', 'awaiting_contract_signing', 'awaiting_battery_assignment'])
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
