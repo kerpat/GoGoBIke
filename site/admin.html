@@ -669,38 +669,6 @@
       </div>
     </div>
 
-    <!-- Модальное окно для выбора аккумулятора -->
-    <div id="assign-battery-modal" class="overlay hidden">
-      <div class="modal" style="max-width: 500px;">
-        <div class="modal-header">
-          <h3>Выбрать аккумулятор для аренды</h3>
-          <button id="assign-battery-cancel-btn" class="close-btn">&times;</button>
-        </div>
-        <div class="modal-body">
-          <form id="assign-battery-form">
-            <input type="hidden" id="assign-battery-rental-id">
-            <div class="form-group">
-              <label for="battery-select">Выберите аккумулятор:</label>
-              <select id="battery-select" class="form-control" required></select>
-            </div>
-            <div id="battery-details" style="display: none;">
-              <h4>Данные аккумулятора</h4>
-              <div class="form-group">
-                <label for="assign-battery-power">Мощность</label>
-                <input type="text" id="assign-battery-power" class="modal-form-input" readonly>
-              </div>
-              <div class="form-group">
-                <label for="assign-battery-description">Описание</label>
-                <textarea id="assign-battery-description" class="modal-form-input" rows="3" readonly></textarea>
-              </div>
-            </div>
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" id="assign-battery-submit-btn" class="btn btn-primary">Назначить и активировать</button>
-        </div>
-      </div>
-    </div>
 
     <!-- Модальное окно для выбора велосипеда -->
     <div id="assign-bike-modal" class="overlay hidden">

@@ -2184,46 +2184,6 @@ clientsTableBody.addEventListener('click', async (e) => {
             const rejectBtn = e.target.closest('.reject-rental-btn');
             const processBtn = e.target.closest('.process-return-btn');
 
-            if (assignBatteryBtn) {
-                const rentalId = assignBatteryBtn.dataset.rentalId;
-                assignBatteryRentalIdInput.value = rentalId;
-
-                try {
-                    const response = await authedFetch('/api/batteries', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'get-batteries' })
-                    });
-                    const result = await response.json();
-                    if (!response.ok) throw new Error(result.error || 'Ошибка загрузки');
-
-                    batterySelect.innerHTML = '<option value="">-- Выберите аккумулятор --</option>';
-                    result.batteries.forEach(battery => {
-                        const option = document.createElement('option');
-                        option.value = battery.id;
-                        option.textContent = `${battery.name} (${battery.power || 'N/A'})`;
-                        batterySelect.appendChild(option);
-                    });
-
-                    batterySelect.addEventListener('change', () => {
-                        const selectedId = batterySelect.value;
-                        if (selectedId) {
-                            const selectedBattery = result.batteries.find(b => b.id == selectedId);
-                            if (selectedBattery) {
-                                assignBatteryPowerInput.value = selectedBattery.power || '';
-                                assignBatteryDescriptionInput.value = selectedBattery.description || '';
-                                batteryDetailsDiv.style.display = 'block';
-                            }
-                        } else {
-                            batteryDetailsDiv.style.display = 'none';
-                        }
-                    });
-
-                    assignBatteryModal.classList.remove('hidden');
-                } catch (err) {
-                    alert('Не удалось загрузить список аккумуляторов: ' + err.message);
-                }
-            }
 
             if (assignBatteryBtn) {
                 const rentalId = assignBatteryBtn.dataset.rentalId;
@@ -2300,84 +2260,6 @@ clientsTableBody.addEventListener('click', async (e) => {
                 }
             }
 
-            if (assignBatteryBtn) {
-                const rentalId = assignBatteryBtn.dataset.rentalId;
-
-                try {
-                    const { data, error } = await supabase.from('batteries').select('*').eq('status', 'available');
-                    if (error) throw error;
-
-                    // Create a modal for battery selection
-                    const batteryModal = document.createElement('div');
-                    batteryModal.className = 'overlay';
-                    batteryModal.innerHTML = `
-                        <div class="modal" style="max-width: 500px;">
-                            <div class="modal-header">
-                                <h3>Выбрать аккумулятор</h3>
-                                <button class="close-btn" id="battery-modal-close">&times;</button>
-                            </div>
-                            <div class="modal-body">
-                                <form id="assign-battery-form">
-                                    <input type="hidden" id="assign-battery-rental-id" value="${rentalId}">
-                                    <div class="form-group">
-                                        <label for="battery-select">Выберите свободный аккумулятор:</label>
-                                        <select id="battery-select" class="form-control" required>
-                                            <option value="">-- Выберите аккумулятор --</option>
-                                            ${data.map(battery => `<option value="${battery.id}">${battery.model} (${battery.capacity} Wh, ${battery.power} W)</option>`).join('')}
-                                        </select>
-                                    </div>
-                                </form>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" id="assign-battery-submit-btn" class="btn btn-primary">Назначить</button>
-                            </div>
-                        </div>
-                    `;
-                    document.body.appendChild(batteryModal);
-
-                    // Handle modal close
-                    batteryModal.querySelector('#battery-modal-close').addEventListener('click', () => {
-                        batteryModal.remove();
-                    });
-                    batteryModal.addEventListener('click', (e) => {
-                        if (e.target === batteryModal) batteryModal.remove();
-                    });
-
-                    // Handle battery assignment
-                    batteryModal.querySelector('#assign-battery-submit-btn').addEventListener('click', async () => {
-                        const batteryId = batteryModal.querySelector('#battery-select').value;
-                        if (!batteryId) {
-                            alert('Пожалуйста, выберите аккумулятор.');
-                            return;
-                        }
-
-                        toggleButtonLoading(batteryModal.querySelector('#assign-battery-submit-btn'), true, 'Назначить', 'Назначение...');
-
-                        try {
-                            const response = await authedFetch('/api/admin', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ action: 'assign-battery', rental_id: rentalId, battery_id: batteryId })
-                            });
-
-                            const result = await response.json();
-                            if (!response.ok) throw new Error(result.error || 'Ошибка сервера');
-
-                            alert(result.message);
-                            batteryModal.remove();
-                            loadAssignments();
-
-                        } catch (err) {
-                            alert('Ошибка назначения аккумулятора: ' + err.message);
-                        } finally {
-                            toggleButtonLoading(batteryModal.querySelector('#assign-battery-submit-btn'), false, 'Назначить', 'Назначение...');
-                        }
-                    });
-
-                } catch (err) {
-                    alert('Не удалось загрузить список свободных аккумуляторов: ' + err.message);
-                }
-            }
 
             if (rejectBtn) {
                 const rentalId = rejectBtn.dataset.rentalId;
