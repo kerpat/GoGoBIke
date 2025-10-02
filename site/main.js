@@ -95,8 +95,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (activeRental) {
             switch(activeRental.status) {
-                case 'active': 
-                    renderActiveRentalView(mainContent, activeRental); 
+                case 'active':
+                    await renderActiveRentalView(mainContent, activeRental, currentUser.balance_rub);
                     break;
                 case 'overdue': 
                     renderOverdueRentalView(mainContent, activeRental); 
