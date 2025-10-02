@@ -628,6 +628,48 @@ async function handleChargeForDamages({ userId, rentalId, amount, description, d
     return { status: 200, body: { message: `Сумма ${chargeAmount} ₽ успешно списана с привязанной карты клиента.` } };
 }
 
+/**
+ * Отправляет уведомление о назначении АКБ
+ */
+async function handleNotifyBatteryAssignment({ rentalId }) {
+    if (!rentalId) {
+        return { status: 400, body: { error: 'rentalId обязателен.' } };
+    }
+
+    const supabaseAdmin = createSupabaseAdmin();
+
+    try {
+        const { data: rental, error } = await supabaseAdmin
+            .from('rentals')
+            .select('user_id, clients(extra)')
+            .eq('id', rentalId)
+            .single();
+
+        if (error || !rental) {
+            console.error('Не удалось найти аренду:', error);
+            return { status: 404, body: { error: 'Аренда не найдена.' } };
+        }
+
+        const telegramUserId = rental?.clients?.extra?.telegram_user_id;
+
+        if (!telegramUserId) {
+            console.warn(`Telegram ID не найден для аренды ${rentalId}`);
+            return { status: 200, body: { message: 'Уведомление не отправлено (нет Telegram ID).' } };
+        }
+
+        const messageText = '✅ Ваше оборудование готово! Пожалуйста, подпишите договор, чтобы начать аренду.';
+
+        // Отправляем уведомление напрямую через функцию, которая УЖЕ ЕСТЬ в admin.js
+        await sendTelegramMessage(telegramUserId, messageText);
+
+        console.log(`✅ Уведомление об АКБ отправлено для аренды ${rentalId}`);
+        return { status: 200, body: { message: 'Уведомление успешно отправлено.' } };
+
+    } catch (err) {
+        console.error('Ошибка отправки уведомления об АКБ:', err);
+        return { status: 500, body: { error: err.message } };
+    }
+}
 async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -679,6 +721,9 @@ async function handler(req, res) {
                 break;
             case 'charge-for-damages':
                 result = await handleChargeForDamages(body);
+                break;
+            case 'notify-battery-assignment':
+                result = await handleNotifyBatteryAssignment(body);
                 break;
             default:
                 result = { status: 400, body: { error: 'Invalid action' } };
