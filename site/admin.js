@@ -3364,7 +3364,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     updated_at: new Date().toISOString()
                 }, {
                     onConflict: 'key'
-                });
+                })
+                .select();
 
             if (error) throw error;
 
