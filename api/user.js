@@ -253,11 +253,11 @@ async function handleConfirmContract({ userId, rentalId, signatureData }) {
 
         const { data: { publicUrl } } = supabaseAdmin.storage.from('contracts').getPublicUrl(filePath);
 
-        // ШАГ 5: Активируем аренду и сохраняем ссылку на документ
+        // ШАГ 5: Устанавливаем статус ожидания выбора аккумулятора
         const { error: updateError } = await supabaseAdmin
             .from('rentals')
             .update({
-                status: 'active',
+                status: 'awaiting_battery_assignment',
                 // Убедись, что в таблице rentals есть колонка `extra_data` типа jsonb
                 extra_data: { contract_document_url: publicUrl }
             })

@@ -107,6 +107,71 @@ async function handleAdjustBalance({ userId, amount, reason }) {
     return { status: 200, body: { message: 'Balance adjusted successfully.' } };
 }
 
+async function handleAssignBattery({ rental_id, battery_id }) {
+    console.log("--- ЗАПУСК handleAssignBattery ---");
+
+    const numericBatteryId = parseInt(battery_id, 10);
+    const numericRentalId = parseInt(rental_id, 10);
+
+    if (!numericRentalId || !numericBatteryId || isNaN(numericRentalId) || isNaN(numericBatteryId)) {
+        console.error('Получены некорректные ID:', { rental_id, battery_id });
+        return { status: 400, body: { error: 'Некорректный ID аренды или аккумулятора.' } };
+    }
+
+    try {
+        const supabaseAdmin = createSupabaseAdmin();
+
+        console.log(`[1/2] Обновление аренды с battery_id: rental_id=${numericRentalId}, battery_id=${numericBatteryId}`);
+        const { error: updateError } = await supabaseAdmin
+            .from('rentals')
+            .update({ battery_id: numericBatteryId, status: 'active' })
+            .eq('id', numericRentalId);
+
+        if (updateError) {
+            console.error('Ошибка обновления аренды:', updateError);
+            throw new Error('Ошибка в базе данных при назначении аккумулятора: ' + updateError.message);
+        }
+        console.log('[1/2] Аренда успешно обновлена.');
+
+        console.log(`[2/2] Получение UUID клиента для аренды ID: ${numericRentalId}`);
+        const { data: rentalData, error: rentalError } = await supabaseAdmin
+            .from('rentals')
+            .select('user_id')
+            .eq('id', numericRentalId)
+            .single();
+
+        if (rentalError || !rentalData || !rentalData.user_id) {
+            console.error('Не удалось найти аренду или user_id в ней:', rentalError);
+            return { status: 200, body: { message: 'Аккумулятор назначен, но не удалось отправить уведомление (не найден user_id).' } };
+        }
+        const clientUuid = rentalData.user_id;
+        console.log(`[2/2] Найден UUID клиента: ${clientUuid}`);
+
+        console.log(`[3/3] Получение Telegram ID из поля extra...`);
+        const { data: clientData, error: clientError } = await supabaseAdmin
+            .from('clients')
+            .select('extra')
+            .eq('id', clientUuid)
+            .single();
+
+        const telegramUserId = clientData?.extra?.telegram_user_id;
+
+        if (clientError || !telegramUserId) {
+            console.error('Не удалось найти клиента или telegram_user_id внутри поля extra:', clientError);
+            return { status: 200, body: { message: 'Аккумулятор назначен, но не удалось отправить уведомление (не найден telegram_id в extra).' } };
+        }
+        console.log(`[3/3] Найден Telegram ID: ${telegramUserId}. Отправка уведомления...`);
+
+        await sendTelegramMessage(telegramUserId, '✅ Аккумулятор назначен! Ваша аренда активирована. Приятной поездки!');
+
+        return { status: 200, body: { message: 'Аккумулятор успешно назначен, аренда активирована, уведомление отправлено.' } };
+
+    } catch (error) {
+        console.error('КРИТИЧЕСКАЯ ОШИБКА в handleAssignBattery:', error);
+        return { status: 500, body: { error: error.message } };
+    }
+}
+
 async function handleAssignBike({ rental_id, bike_id }) {
     console.log("--- ЗАПУСК handleAssignBike (НАДЕЖНАЯ ВЕРСИЯ) ---");
 
@@ -652,6 +717,9 @@ async function handler(req, res) {
         switch (action) {
             case 'adjust-balance':
                 result = await handleAdjustBalance(body);
+                break;
+            case 'assign-battery':
+                result = await handleAssignBattery(body);
                 break;
             case 'assign-bike':
                 result = await handleAssignBike(body);

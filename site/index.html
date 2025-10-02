@@ -541,13 +541,27 @@
     const renderAwaitingContractView = (rental, container) => {
         container.innerHTML = `
             <div class="bike-image-wrapper">
-                 <img src="bike-delivery.png" alt="Electric bike" class="bike-image" width="1536" height="1024">
+                  <img src="bike-delivery.png" alt="Electric bike" class="bike-image" width="1536" height="1024">
             </div>
             <h2 style="text-align: center;">Аренда почти готова!</h2>
             <p style="text-align: center; color: var(--dark-green); margin-bottom: 20px;">Осталось подписать договор. Это займет меньше минуты.</p>
             <div class="action-buttons">
                 <button class="btn btn-primary" onclick="window.location.href='profile.html#notifications'">Перейти к подписанию</button>
             </div>
+        `;
+        // Также нужно подгрузить баланс и кол-во великов, если нужно
+        const balanceEl = document.getElementById('balance-amount');
+        if (balanceEl) balanceEl.textContent = formatBalance(userBalance);
+        // и т.д.
+    };
+
+    const renderAwaitingBatteryAssignmentView = (rental, container) => {
+        container.innerHTML = `
+            <div class="bike-image-wrapper">
+                  <img src="bike-delivery.png" alt="Electric bike" class="bike-image" width="1536" height="1024">
+            </div>
+            <h2 style="text-align: center;">Дождитесь пока администратор выберет для вас аккумуляторы</h2>
+            <p style="text-align: center; color: var(--dark-green); margin-bottom: 20px;">После выбора аккумулятора ваша аренда будет активирована.</p>
         `;
         // Также нужно подгрузить баланс и кол-во великов, если нужно
         const balanceEl = document.getElementById('balance-amount');
@@ -673,7 +687,7 @@ if (status === 'approved') {
         .from('rentals')
         .select('*, tariffs(*)')
         .eq('user_id', userId)
-        .in('status', ['active', 'overdue', 'pending_return', 'awaiting_contract_signing'])
+        .in('status', ['active', 'overdue', 'pending_return', 'awaiting_contract_signing', 'awaiting_battery_assignment'])
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
@@ -688,6 +702,9 @@ if (status === 'approved') {
         switch(rental.status) {
             case 'awaiting_contract_signing':
                 renderAwaitingContractView(rental, mainContent); // Показываем экран "Подпишите договор"
+                break;
+            case 'awaiting_battery_assignment':
+                renderAwaitingBatteryAssignmentView(rental, mainContent); // Показываем экран "Дождитесь выбора аккумулятора"
                 break;
             case 'active':
                 renderActiveRentalView(rental, mainContent);
