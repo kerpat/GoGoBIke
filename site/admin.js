@@ -103,6 +103,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const assignBatteriesCancelBtn = document.getElementById('assign-batteries-cancel-btn');
     const assignBatteriesSubmitBtn = document.getElementById('assign-batteries-submit-btn');
 
+    // Отладка: проверяем что все элементы найдены
+    console.log('DOM элементы для АКБ:');
+    console.log('assignBatteriesModal:', assignBatteriesModal);
+    console.log('assignBatteriesRentalIdInput:', assignBatteriesRentalIdInput);
+    console.log('batterySelectList:', batterySelectList);
+
     // Assignment elements
     const assignmentsTableBody = document.querySelector('#assignments-table tbody');
     const assignBikeModal = document.getElementById('assign-bike-modal');
@@ -386,7 +392,8 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             rental: {
                 'active': { text: 'Активна', className: 'status-success' },
-                'awaiting_contract_signing': { text: 'Ожидает АКБ', className: 'status-warning' }, // <-- ИЗМЕНЕН ТЕКСТ
+                'awaiting_battery_assignment': { text: 'Ожидает АКБ', className: 'status-warning' },
+                'awaiting_contract_signing': { text: 'Ожидает подписания', className: 'status-warning' },
                 'completed_by_admin': { text: 'Завершено админом', className: 'status-info' },
                 'pending_assignment': { text: 'Ожидает велосипед', className: 'status-warning' },
                 'pending_return': { text: 'Ожидает сдачи', className: 'status-warning' },
@@ -457,7 +464,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 Object.keys(rec).forEach(k => {
                     const item = document.createElement('div');
                     item.className = 'form-group';
-                    const val = (rec[k] ?? '').toString().replace(/"/g,'&quot;');
+                    const val = (rec[k] ?? '').toString().replace(/"/g, '&quot;');
                     item.innerHTML = `<label>${k}</label><input type="text" name="${k}" value="${val}">`;
                     recognizedEditForm.appendChild(item);
                 });
@@ -530,7 +537,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 clientInfoSaveBtn.onclick = async () => {
                     const formData = new FormData(recognizedEditForm);
                     const updated = {};
-                    for (const [k,v] of formData.entries()) updated[k] = String(v);
+                    for (const [k, v] of formData.entries()) updated[k] = String(v);
                     const { error: uerr } = await supabase.from('clients').update({ recognized_passport_data: updated }).eq('id', currentEditingId);
                     if (uerr) { alert('Ошибка сохранения: ' + uerr.message); return; }
                     // refresh view
@@ -1063,8 +1070,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </td>`;
                 bikesTableBody.appendChild(tr);
             });
-        } catch (err)
-        {
+        } catch (err) {
             console.error('Ошибка загрузки велосипедов:', err);
             bikesTableBody.innerHTML = `<tr><td colspan="7">Ошибка: ${err.message}</td></tr>`;
         }
@@ -1255,34 +1261,34 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Clients Logic ---
 
     async function loadClients() {
-    clientsTableBody.innerHTML = '<tr><td colspan="8">Загрузка клиентов...</td></tr>';
-    try {
-        const { data, error } = await supabase
-            .from('clients')
-            .select('*')
-            .order('created_at', { ascending: false });
+        clientsTableBody.innerHTML = '<tr><td colspan="8">Загрузка клиентов...</td></tr>';
+        try {
+            const { data, error } = await supabase
+                .from('clients')
+                .select('*')
+                .order('created_at', { ascending: false });
 
-        if (error) throw error;
-        clientsData = data || []; 
-        clientsTableBody.innerHTML = '';
+            if (error) throw error;
+            clientsData = data || [];
+            clientsTableBody.innerHTML = '';
 
-        if (clientsData.length === 0) {
-            clientsTableBody.innerHTML = '<tr><td colspan="8">Клиенты не найдены.</td></tr>';
-            return;
-        }
+            if (clientsData.length === 0) {
+                clientsTableBody.innerHTML = '<tr><td colspan="8">Клиенты не найдены.</td></tr>';
+                return;
+            }
 
-        clientsData.forEach(client => {
-            const tr = document.createElement('tr');
-            const date = new Date(client.created_at).toLocaleDateString();
-            const status = client.verification_status || 'not_set';
-            const tags = client.extra?.tags || [];
+            clientsData.forEach(client => {
+                const tr = document.createElement('tr');
+                const date = new Date(client.created_at).toLocaleDateString();
+                const status = client.verification_status || 'not_set';
+                const tags = client.extra?.tags || [];
 
-            const verificationButtons = status === 'pending' || status === 'needs_confirmation'
-    ? `<button type="button" class="approve-btn" data-id="${client.id}">Одобрить</button> <button type="button" class="reject-btn" data-id="${client.id}">Отклонить</button>`
-    : '';
-            const tagsHtml = tags.map(tag => `<span class="chip" style="background-color: #eef7ff; border-color: #cfe6ff; color: #004a80; margin: 2px;">${tag}</span>`).join('');
+                const verificationButtons = status === 'pending' || status === 'needs_confirmation'
+                    ? `<button type="button" class="approve-btn" data-id="${client.id}">Одобрить</button> <button type="button" class="reject-btn" data-id="${client.id}">Отклонить</button>`
+                    : '';
+                const tagsHtml = tags.map(tag => `<span class="chip" style="background-color: #eef7ff; border-color: #cfe6ff; color: #004a80; margin: 2px;">${tag}</span>`).join('');
 
-            tr.innerHTML = `
+                tr.innerHTML = `
                 <td>${client.name}</td>
                 <td>${client.phone || ''}</td>
                 <td>${createStatusBadge(status, 'client')}</td>
@@ -1291,67 +1297,67 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td><button type="button" class="view-client-btn" data-id="${client.id}">Инфо/Фото</button></td>
                 <td>${verificationButtons}</td>
                 <td><button type="button" class="delete-client-btn btn-danger" data-id="${client.id}" style="background-color:#e53e3e;color:white;">Удалить</button></td>`;
-            clientsTableBody.appendChild(tr);
-        });
-    } catch (err) {
-        console.error('Ошибка загрузки клиентов:', err);
-        clientsTableBody.innerHTML = `<tr><td colspan="9">Ошибка: ${err.message}</td></tr>`;
-    }
-}
-  
-clientsTableBody.addEventListener('click', async (e) => {
-    const target = e.target;
-    const clientId = target.dataset.id;
-
-    if (!clientId) return;
-
-    let newStatus = '';
-    if (target.classList.contains('approve-btn')) newStatus = 'approved';
-    if (target.classList.contains('reject-btn')) newStatus = 'rejected';
-
-    if (newStatus) {
-        if (!confirm(`Вы уверены, что хотите изменить статус клиента #${clientId} на "${newStatus}"?`)) return;
-        
-        try {
-            const { error } = await supabase
-                .from('clients')
-                .update({ verification_status: newStatus })
-                .eq('id', clientId);
-
-            if (error) throw error;
-            
-            alert('Статус клиента успешно обновлен!');
-            loadClients(); // Перезагружаем список, чтобы увидеть изменения
+                clientsTableBody.appendChild(tr);
+            });
         } catch (err) {
-            alert(`Ошибка обновления статуса: ${err.message}`);
+            console.error('Ошибка загрузки клиентов:', err);
+            clientsTableBody.innerHTML = `<tr><td colspan="9">Ошибка: ${err.message}</td></tr>`;
         }
-        return;
     }
 
-    if (target.classList.contains('delete-client-btn')) {
-        if (confirm(`ВНИМАНИЕ!\n\nВы уверены, что хотите НАВСЕГДА удалить клиента с ID ${clientId}?\n\nЭто действие также удалит всю его историю аренд и платежей. Отменить это будет невозможно.`)) {
+    clientsTableBody.addEventListener('click', async (e) => {
+        const target = e.target;
+        const clientId = target.dataset.id;
+
+        if (!clientId) return;
+
+        let newStatus = '';
+        if (target.classList.contains('approve-btn')) newStatus = 'approved';
+        if (target.classList.contains('reject-btn')) newStatus = 'rejected';
+
+        if (newStatus) {
+            if (!confirm(`Вы уверены, что хотите изменить статус клиента #${clientId} на "${newStatus}"?`)) return;
+
             try {
-                target.disabled = true;
-                target.textContent = 'Удаление...';
-                
-                // Сначала удаляем связанные записи, чтобы избежать ошибок внешнего ключа
-                await supabase.from('payments').delete().eq('client_id', clientId);
-                await supabase.from('rentals').delete().eq('user_id', clientId);
-                
-                // Наконец, удаляем самого клиента
-                const { error } = await supabase.from('clients').delete().eq('id', clientId);
+                const { error } = await supabase
+                    .from('clients')
+                    .update({ verification_status: newStatus })
+                    .eq('id', clientId);
+
                 if (error) throw error;
-                
-                alert('Клиент успешно удален.');
-                loadClients(); // Обновляем список
+
+                alert('Статус клиента успешно обновлен!');
+                loadClients(); // Перезагружаем список, чтобы увидеть изменения
             } catch (err) {
-                alert(`Ошибка удаления: ${err.message}`);
-                target.disabled = false;
-                target.textContent = 'Удалить';
+                alert(`Ошибка обновления статуса: ${err.message}`);
+            }
+            return;
+        }
+
+        if (target.classList.contains('delete-client-btn')) {
+            if (confirm(`ВНИМАНИЕ!\n\nВы уверены, что хотите НАВСЕГДА удалить клиента с ID ${clientId}?\n\nЭто действие также удалит всю его историю аренд и платежей. Отменить это будет невозможно.`)) {
+                try {
+                    target.disabled = true;
+                    target.textContent = 'Удаление...';
+
+                    // Сначала удаляем связанные записи, чтобы избежать ошибок внешнего ключа
+                    await supabase.from('payments').delete().eq('client_id', clientId);
+                    await supabase.from('rentals').delete().eq('user_id', clientId);
+
+                    // Наконец, удаляем самого клиента
+                    const { error } = await supabase.from('clients').delete().eq('id', clientId);
+                    if (error) throw error;
+
+                    alert('Клиент успешно удален.');
+                    loadClients(); // Обновляем список
+                } catch (err) {
+                    alert(`Ошибка удаления: ${err.message}`);
+                    target.disabled = false;
+                    target.textContent = 'Удалить';
+                }
             }
         }
-    }
-});
+    });
     // --- Rentals and Payments Loaders ---
 
     async function loadRentals() {
@@ -1414,7 +1420,7 @@ clientsTableBody.addEventListener('click', async (e) => {
         }
     }
 
-// --- Логика для редактирования и управления арендой (ОБЪЕДИНЕННЫЙ БЛОК) ---
+    // --- Логика для редактирования и управления арендой (ОБЪЕДИНЕННЫЙ БЛОК) ---
     const rentalEditModal = document.getElementById('rental-edit-modal');
     const rentalEditCancelBtn = document.getElementById('rental-edit-cancel-btn');
     const rentalEditSaveBtn = document.getElementById('rental-edit-save-btn');
@@ -1587,7 +1593,7 @@ clientsTableBody.addEventListener('click', async (e) => {
             }
         });
     }
-    
+
     async function loadPayments() {
         const tbody = document.querySelector('#payments-table tbody');
         if (!tbody) return;
@@ -1711,7 +1717,7 @@ clientsTableBody.addEventListener('click', async (e) => {
 
     // --- Client Info/Edit Modals Logic ---
     // --- Client Info/Edit Modals Logic ---
-// --- Client Info/Edit Modals Logic ---
+    // --- Client Info/Edit Modals Logic ---
 
     if (clientsSection) {
         clientsSection.addEventListener('click', async (e) => {
@@ -1739,7 +1745,7 @@ clientsTableBody.addEventListener('click', async (e) => {
     if (clientEditCancelBtn) {
         clientEditCancelBtn.addEventListener('click', () => clientEditOverlay.classList.add('hidden'));
     }
-    
+
     if (clientEditSaveBtn) {
         clientEditSaveBtn.addEventListener('click', async () => {
             if (!currentEditingId) return;
@@ -1748,7 +1754,7 @@ clientsTableBody.addEventListener('click', async (e) => {
             clientEditForm.querySelectorAll('input, textarea').forEach(inp => {
                 updatedRec[inp.name] = inp.value.trim();
             });
-            
+
             // Создаем новый объект `extra` на основе старого, но с обновленными данными
             const extraObj = JSON.parse(JSON.stringify(currentEditingExtra || {}));
             extraObj.recognized_data = updatedRec;
@@ -1759,7 +1765,7 @@ clientsTableBody.addEventListener('click', async (e) => {
                     .update({ extra: extraObj })
                     .eq('id', currentEditingId);
                 if (error) throw error;
-                
+
                 alert('Данные клиента успешно обновлены.');
                 clientEditOverlay.classList.add('hidden');
                 await loadClients(); // Перезагружаем список клиентов для отображения изменений
@@ -1768,7 +1774,7 @@ clientsTableBody.addEventListener('click', async (e) => {
             }
         });
     }
- 
+
 
     // --- Balance Adjustment Logic ---
     const balanceModal = document.getElementById('balance-modal');
@@ -1833,7 +1839,7 @@ clientsTableBody.addEventListener('click', async (e) => {
                 if (!response.ok) {
                     throw new Error(result.error || `Ошибка сервера: ${response.status}`);
                 }
-                
+
                 alert(result.message || 'Баланс успешно скорректирован.');
                 balanceModal.classList.add('hidden');
                 balanceAmountInput.value = '';
@@ -2110,7 +2116,7 @@ clientsTableBody.addEventListener('click', async (e) => {
                 .from('rentals')
                 .select('id, created_at, user_id, tariff_id, status, clients(name), tariffs(title)')
                 // ИЗМЕНЕНИЕ: Ищем новый статус для выбора АКБ
-                .in('status', ['pending_assignment', 'awaiting_contract_signing', 'pending_return'])
+                .in('status', ['pending_assignment', 'awaiting_battery_assignment', 'awaiting_contract_signing', 'pending_return'])
                 .order('created_at', { ascending: true });
 
             if (error) throw error;
@@ -2128,14 +2134,16 @@ clientsTableBody.addEventListener('click', async (e) => {
                 // ИЗМЕНЕНИЕ: Разная логика для разных статусов
                 if (assignment.status === 'pending_return') {
                     actionButton = `<button class="btn btn-primary process-return-btn" data-rental-id="${assignment.id}">Принять</button>`;
-                } else if (assignment.status === 'awaiting_contract_signing') { // <-- ВОТ НОВЫЙ СТАТУС
+                } else if (assignment.status === 'awaiting_battery_assignment') { // <-- ОЖИДАЕТ АКБ
+                    actionButton = `<button class="btn btn-primary assign-batteries-btn" data-rental-id="${assignment.id}">Выбрать АКБ</button>`;
+                } else if (assignment.status === 'awaiting_contract_signing') { // <-- ОЖИДАЕТ ПОДПИСАНИЯ
                     actionButton = `<button class="btn btn-primary assign-batteries-btn" data-rental-id="${assignment.id}">Выбрать АКБ</button>`;
                 } else { // 'pending_assignment'
                     actionButton = `<button class="btn btn-primary assign-bike-btn" data-rental-id="${assignment.id}">Привязать вел.</button>`;
                 }
 
                 tr.innerHTML = `
-                    <td>${assignment.clients?.name || `ID: ${assignment.user_id.slice(0,8)}...`}</td>
+                    <td>${assignment.clients?.name || `ID: ${assignment.user_id.slice(0, 8)}...`}</td>
                     <td>${assignment.tariffs?.title || `ID: ${assignment.tariff_id}`}</td>
                     <td>${createStatusBadge(assignment.status, 'rental')}</td>
                     <td>${new Date(assignment.created_at).toLocaleString('ru-RU')}</td>
@@ -2152,13 +2160,18 @@ clientsTableBody.addEventListener('click', async (e) => {
         }
     }
 
+    // ЗАМЕНИ ВЕСЬ ЭТОТ БЛОК В СВОЕМ ФАЙЛЕ ADMIN.JS
     if (assignmentsTableBody) {
         assignmentsTableBody.addEventListener('click', async (e) => {
+            console.log('Клик по таблице заявок:', e.target);
             const assignBtn = e.target.closest('.assign-bike-btn');
             const rejectBtn = e.target.closest('.reject-rental-btn');
             const processBtn = e.target.closest('.process-return-btn');
-            const assignBatteriesBtn = e.target.closest('.assign-batteries-btn'); // <-- НОВАЯ ПЕРЕМЕННАЯ
+            const assignBatteriesBtn = e.target.closest('.assign-batteries-btn'); // <-- Наша кнопка
 
+            console.log('assignBatteriesBtn найдена:', assignBatteriesBtn);
+
+            // --- Блок для старой кнопки "Привязать вел." ---
             if (assignBtn) {
                 const rentalId = assignBtn.dataset.rentalId;
                 assignRentalIdInput.value = rentalId;
@@ -2198,6 +2211,7 @@ clientsTableBody.addEventListener('click', async (e) => {
                 }
             }
 
+            // --- Блок для кнопки "Отклонить" ---
             if (rejectBtn) {
                 const rentalId = rejectBtn.dataset.rentalId;
                 if (confirm(`Вы уверены, что хотите отклонить заявку #${rentalId} и вернуть средства клиенту?`)) {
@@ -2210,7 +2224,7 @@ clientsTableBody.addEventListener('click', async (e) => {
                         });
                         const result = await response.json();
                         if (!response.ok) throw new Error(result.error || 'Ошибка сервера');
-                        
+
                         alert(result.message);
                         loadAssignments();
 
@@ -2222,6 +2236,7 @@ clientsTableBody.addEventListener('click', async (e) => {
                 }
             }
 
+            // --- Блок для кнопки "Принять" (сдача велосипеда) ---
             if (processBtn) {
                 const rentalId = processBtn.dataset.rentalId;
                 const returnModal = document.getElementById('return-process-modal');
@@ -2236,9 +2251,9 @@ clientsTableBody.addEventListener('click', async (e) => {
                     const bikeStatusRadios = document.querySelectorAll('input[name="bike-next-status"]');
                     const serviceReasonGroup = document.getElementById('service-reason-group');
 
-                    if(defectsTextarea) defectsTextarea.value = '';
-                    if(bikeStatusRadios.length > 0) bikeStatusRadios[0].checked = true;
-                    if(serviceReasonGroup) serviceReasonGroup.classList.add('hidden');
+                    if (defectsTextarea) defectsTextarea.value = '';
+                    if (bikeStatusRadios.length > 0) bikeStatusRadios[0].checked = true;
+                    if (serviceReasonGroup) serviceReasonGroup.classList.add('hidden');
 
                     // 3. Показываем модальное окно
                     returnModal.classList.remove('hidden');
@@ -2248,20 +2263,55 @@ clientsTableBody.addEventListener('click', async (e) => {
                 }
             }
 
-            // НОВЫЙ БЛОК ДЛЯ ВЫБОРА АККУМУЛЯТОРОВ
+            // ==========================================================
+            // === ВОТ НЕДОСТАЮЩИЙ БЛОК ДЛЯ КНОПКИ "ВЫБРАТЬ АКБ" ===
+            // ==========================================================
             if (assignBatteriesBtn) {
+                console.log('СРАБОТАЛ ОБРАБОТЧИК КНОПКИ ВЫБРАТЬ АКБ!');
                 const rentalId = assignBatteriesBtn.dataset.rentalId;
+                console.log('Rental ID:', rentalId);
+
+                console.log('Проверяем DOM элементы:');
+                console.log('assignBatteriesRentalIdInput:', assignBatteriesRentalIdInput);
+                console.log('batterySelectList:', batterySelectList);
+                console.log('assignBatteriesModal:', assignBatteriesModal);
+
+                if (!assignBatteriesRentalIdInput) {
+                    alert('Ошибка: не найден элемент assign-batteries-rental-id');
+                    return;
+                }
+                if (!batterySelectList) {
+                    alert('Ошибка: не найден элемент battery-select-list');
+                    return;
+                }
+                if (!assignBatteriesModal) {
+                    alert('Ошибка: не найден элемент assign-batteries-modal');
+                    return;
+                }
+
+                // Убеждаемся, что модальное окно находится в body
+                if (!document.body.contains(assignBatteriesModal)) {
+                    console.log('Модальное окно не в body, перемещаем...');
+                    document.body.appendChild(assignBatteriesModal);
+                }
+
                 assignBatteriesRentalIdInput.value = rentalId;
+                console.log('Значение установлено в поле:', assignBatteriesRentalIdInput.value);
 
                 try {
+                    console.log('Загружаем аккумуляторы из базы данных...');
                     // Загружаем только свободные аккумуляторы
                     const { data, error } = await supabase.from('batteries').select('*').eq('status', 'available');
                     if (error) throw error;
 
+                    console.log('Получены аккумуляторы:', data);
+
                     batterySelectList.innerHTML = '';
                     if (data.length === 0) {
+                        console.log('Нет свободных аккумуляторов');
                         batterySelectList.innerHTML = '<p>Нет свободных аккумуляторов.</p>';
                     } else {
+                        console.log('Создаем список из', data.length, 'аккумуляторов');
                         data.forEach(battery => {
                             const label = document.createElement('label');
                             label.style.display = 'block';
@@ -2272,12 +2322,55 @@ clientsTableBody.addEventListener('click', async (e) => {
                             batterySelectList.appendChild(label);
                         });
                     }
+                    console.log('Показываем модальное окно...');
+
+                    // Убедимся, что элемент в body (теперь он должен быть там по умолчанию)
+                    if (!document.body.contains(assignBatteriesModal)) {
+                        console.log('Модальное окно не в body, перемещаем...');
+                        document.body.appendChild(assignBatteriesModal);
+                    }
+
+                    // Принудительный reset стилей
+                    assignBatteriesModal.style.cssText = '';
+                    void assignBatteriesModal.offsetHeight; // Reflow
+
+                    // Применяем нужные стили
                     assignBatteriesModal.classList.remove('hidden');
-                } catch(err) {
+
+                    console.log('Классы ПОСЛЕ удаления hidden:', assignBatteriesModal.className);
+
+                    // Добавляем временную красную рамку для отладки
+                    assignBatteriesModal.style.border = '5px solid red';
+
+                    // Прокручиваем к модальному окну
+                    assignBatteriesModal.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                    // Проверяем computed styles
+                    const computedStyle = window.getComputedStyle(assignBatteriesModal);
+                    console.log('Computed display:', computedStyle.display);
+                    console.log('Computed opacity:', computedStyle.opacity);
+                    console.log('Computed visibility:', computedStyle.visibility);
+                    console.log('Computed z-index:', computedStyle.zIndex);
+
+                    // Проверяем позицию элемента СРАЗУ
+                    const rect = assignBatteriesModal.getBoundingClientRect();
+                    console.log('Позиция модального окна СРАЗУ:', rect);
+
+                    // Проверяем позицию через 100ms после reflow
+                    setTimeout(() => {
+                        const rectAfter = assignBatteriesModal.getBoundingClientRect();
+                        console.log('Позиция модального окна ПОСЛЕ REFLOW:', rectAfter);
+                    }, 100);
+
+                    console.log('Модальное окно должно быть видно с красной рамкой!');
+                } catch (err) {
+                    console.error('Ошибка при загрузке аккумуляторов:', err);
                     alert('Ошибка загрузки списка аккумуляторов: ' + err.message);
                 }
             }
-
+            // ==========================================================
+            // === КОНЕЦ НОВОГО БЛОКА ===
+            // ==========================================================
         });
     }
 
@@ -2450,7 +2543,7 @@ clientsTableBody.addEventListener('click', async (e) => {
             }
         });
     }
-    
+
     // Also close on overlay click
     if (invoiceModal) {
         invoiceModal.addEventListener('click', (e) => {
@@ -2486,7 +2579,7 @@ clientsTableBody.addEventListener('click', async (e) => {
                 }
 
                 const responseText = await response.text();
-                
+
                 // Если ответ пустой, считаем, что все прошло успешно
                 if (!responseText) {
                     alert('Счет успешно создан и отправлен на списание.');
@@ -2568,17 +2661,17 @@ clientsTableBody.addEventListener('click', async (e) => {
                 });
                 const pdfResult = await pdfResponse.json();
                 if (!pdfResponse.ok) throw new Error(pdfResult.error || 'Ошибка генерации PDF акта.');
-                
+
                 const finalizeResponse = await authedFetch('/api/admin', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        action: 'finalize-return', 
-                        rental_id: rentalId, 
-                        new_bike_status: newBikeStatus, 
-                        service_reason: serviceReason, 
-                        return_act_url: pdfResult.publicUrl, 
-                        defects 
+                    body: JSON.stringify({
+                        action: 'finalize-return',
+                        rental_id: rentalId,
+                        new_bike_status: newBikeStatus,
+                        service_reason: serviceReason,
+                        return_act_url: pdfResult.publicUrl,
+                        defects
                     })
                 });
                 if (!finalizeResponse.ok) {
@@ -2598,12 +2691,12 @@ clientsTableBody.addEventListener('click', async (e) => {
                 if (buttonToToggle) toggleButtonLoading(buttonToToggle, false, buttonToToggle.textContent, 'Обработка...');
             }
         };
-// Show/hide service reason input
-bikeNextStatusRadios.forEach(radio => {
-    radio.addEventListener('change', () => {
-        serviceReasonGroup.classList.toggle('hidden', radio.value !== 'in_service');
-    });
-});
+        // Show/hide service reason input
+        bikeNextStatusRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                serviceReasonGroup.classList.toggle('hidden', radio.value !== 'in_service');
+            });
+        });
         // Modal close events
         returnProcessCloseBtn.addEventListener('click', () => returnProcessModal.classList.add('hidden'));
         returnProcessModal.addEventListener('click', (e) => {
@@ -2618,7 +2711,7 @@ bikeNextStatusRadios.forEach(radio => {
             try {
                 const { data: rental, error: rentalError } = await supabase.from('rentals').select('user_id, clients(balance_rub)').eq('id', rentalId).single();
                 if (rentalError) throw rentalError;
-                
+
                 const userId = rental.user_id;
                 const userBalance = rental.clients?.balance_rub || 0;
 
@@ -2636,13 +2729,13 @@ bikeNextStatusRadios.forEach(radio => {
                 const response = await authedFetch('/api/admin', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        action: 'charge-for-damages', 
-                        userId, 
-                        rentalId, 
-                        amount, 
-                        description: 'Возмещение ущерба', 
-                        defects: returnDefectsTextarea.value.split('\n').map(d => d.trim()).filter(d => d) 
+                    body: JSON.stringify({
+                        action: 'charge-for-damages',
+                        userId,
+                        rentalId,
+                        amount,
+                        description: 'Возмещение ущерба',
+                        defects: returnDefectsTextarea.value.split('\n').map(d => d.trim()).filter(d => d)
                     })
                 });
 
@@ -2709,153 +2802,153 @@ bikeNextStatusRadios.forEach(radio => {
     // ==== Templates Manager (Шаблоны договоров) ====
 
     const PLACEHOLDERS = {
-      client: [
-        ['client.full_name','ФИО'], ['client.first_name','Имя'], ['client.last_name','Фамилия'], ['client.middle_name','Отчество'],
-        ['client.passport_series','Серия паспорта'], ['client.passport_number','Номер паспорта'], ['client.issued_by','Кем выдан'],
-        ['client.issued_at','Дата выдачи'], ['client.birth_date','Дата рождения'], ['client.city','Город'], ['client.address','Адрес'],
-        ['client.phone','Телефон'], ['client.inn','ИНН'], ['client.emergency_phone','Экстренный телефон'], ['client.citizenship','Гражданство']
-      ],
-      bike: [
-        ['bike.name','Наименование'], ['bike.code','Код'], ['bike.frame_number','Номер рамы'], ['bike.battery_numbers','Номера аккумуляторов'],
-        ['bike.registration_number','Рег. номер'], ['bike.iot_device_id','Номер IOT'], ['bike.additional_equipment','Доп. оборудование']
-      ],
-      tariff: [ ['tariff.title','Тариф'], ['tariff.duration_days','Дней'], ['tariff.price_rub','Сумма ₽'] ],
-      rental: [ ['rental.id','№ аренды'], ['rental.starts_at','Начало'], ['rental.ends_at','Конец'], ['rental.bike_id','ID велосипеда'] ],
-      aux: [ ['now.date','Дата'], ['now.time','Время'], ['contract.city','Город акта'] ]
+        client: [
+            ['client.full_name', 'ФИО'], ['client.first_name', 'Имя'], ['client.last_name', 'Фамилия'], ['client.middle_name', 'Отчество'],
+            ['client.passport_series', 'Серия паспорта'], ['client.passport_number', 'Номер паспорта'], ['client.issued_by', 'Кем выдан'],
+            ['client.issued_at', 'Дата выдачи'], ['client.birth_date', 'Дата рождения'], ['client.city', 'Город'], ['client.address', 'Адрес'],
+            ['client.phone', 'Телефон'], ['client.inn', 'ИНН'], ['client.emergency_phone', 'Экстренный телефон'], ['client.citizenship', 'Гражданство']
+        ],
+        bike: [
+            ['bike.name', 'Наименование'], ['bike.code', 'Код'], ['bike.frame_number', 'Номер рамы'], ['bike.battery_numbers', 'Номера аккумуляторов'],
+            ['bike.registration_number', 'Рег. номер'], ['bike.iot_device_id', 'Номер IOT'], ['bike.additional_equipment', 'Доп. оборудование']
+        ],
+        tariff: [['tariff.title', 'Тариф'], ['tariff.duration_days', 'Дней'], ['tariff.price_rub', 'Сумма ₽']],
+        rental: [['rental.id', '№ аренды'], ['rental.starts_at', 'Начало'], ['rental.ends_at', 'Конец'], ['rental.bike_id', 'ID велосипеда']],
+        aux: [['now.date', 'Дата'], ['now.time', 'Время'], ['contract.city', 'Город акта']]
     };
 
     function mountChips(container, items) {
-      if (!container) return;
-      container.innerHTML = '';
-      items.forEach(([value,label]) => {
-        const chip = document.createElement('span');
-        chip.className = 'chip';
-        chip.textContent = label;
-        chip.title = `Вставить {{${value}}}`;
-        chip.addEventListener('click', () => insertAtCaret(`{{${value}}}`));
-        container.appendChild(chip);
-      });
+        if (!container) return;
+        container.innerHTML = '';
+        items.forEach(([value, label]) => {
+            const chip = document.createElement('span');
+            chip.className = 'chip';
+            chip.textContent = label;
+            chip.title = `Вставить {{${value}}}`;
+            chip.addEventListener('click', () => insertAtCaret(`{{${value}}}`));
+            container.appendChild(chip);
+        });
     }
 
     function insertAtCaret(text) {
-      if (!templateEditor) return;
-      templateEditor.focus();
-      document.execCommand('insertText', false, text);
+        if (!templateEditor) return;
+        templateEditor.focus();
+        document.execCommand('insertText', false, text);
     }
 
     function toolbarAction(e) {
-      const btn = e.target.closest('button[data-cmd]');
-      if (!btn || !templateEditorInstance) return;
-      const cmd = btn.dataset.cmd;
-      if (cmd === 'bold') {
-        templateEditorInstance.chain().focus().toggleBold().run();
-      } else if (cmd === 'italic') {
-        templateEditorInstance.chain().focus().toggleItalic().run();
-      } else if (cmd === 'underline') {
-        // Underline not in StarterKit, need to add extension
-        // For now, skip or add later
-      } else if (cmd === 'insertParagraph') {
-        templateEditorInstance.chain().focus().setParagraph().run();
-      }
+        const btn = e.target.closest('button[data-cmd]');
+        if (!btn || !templateEditorInstance) return;
+        const cmd = btn.dataset.cmd;
+        if (cmd === 'bold') {
+            templateEditorInstance.chain().focus().toggleBold().run();
+        } else if (cmd === 'italic') {
+            templateEditorInstance.chain().focus().toggleItalic().run();
+        } else if (cmd === 'underline') {
+            // Underline not in StarterKit, need to add extension
+            // For now, skip or add later
+        } else if (cmd === 'insertParagraph') {
+            templateEditorInstance.chain().focus().setParagraph().run();
+        }
     }
 
     // selection tracking inside editor
-    function isWithinEditor(node){ return templateEditor && node && (node === templateEditor || templateEditor.contains(node)); }
+    function isWithinEditor(node) { return templateEditor && node && (node === templateEditor || templateEditor.contains(node)); }
     document.addEventListener('selectionchange', () => {
-      const sel = window.getSelection ? window.getSelection() : null;
-      if (!sel || sel.rangeCount === 0) return;
-      const r = sel.getRangeAt(0);
-      if (isWithinEditor(r.startContainer)) {
-        lastSelRange = r.cloneRange();
-      }
+        const sel = window.getSelection ? window.getSelection() : null;
+        if (!sel || sel.rangeCount === 0) return;
+        const r = sel.getRangeAt(0);
+        if (isWithinEditor(r.startContainer)) {
+            lastSelRange = r.cloneRange();
+        }
     });
 
-    function insertAtSavedRange(token){
-      if (!templateEditor) return;
-      templateEditor.focus();
-      const sel = window.getSelection();
-      try{
-        if (lastSelRange && isWithinEditor(lastSelRange.startContainer)) {
-          sel.removeAllRanges();
-          sel.addRange(lastSelRange);
+    function insertAtSavedRange(token) {
+        if (!templateEditor) return;
+        templateEditor.focus();
+        const sel = window.getSelection();
+        try {
+            if (lastSelRange && isWithinEditor(lastSelRange.startContainer)) {
+                sel.removeAllRanges();
+                sel.addRange(lastSelRange);
+            }
+            const range = sel.rangeCount ? sel.getRangeAt(0) : null;
+            if (range) {
+                range.deleteContents();
+                const span = document.createElement('span');
+                span.className = 'ph';
+                span.textContent = token;
+                range.insertNode(span);
+                // move caret after inserted
+                range.setStartAfter(span);
+                range.collapse(true);
+                sel.removeAllRanges(); sel.addRange(range);
+            } else {
+                document.execCommand('insertText', false, token);
+            }
+        } catch {
+            document.execCommand('insertText', false, token);
         }
-        const range = sel.rangeCount ? sel.getRangeAt(0) : null;
-        if (range) {
-          range.deleteContents();
-          const span = document.createElement('span');
-          span.className = 'ph';
-          span.textContent = token;
-          range.insertNode(span);
-          // move caret after inserted
-          range.setStartAfter(span);
-          range.collapse(true);
-          sel.removeAllRanges(); sel.addRange(range);
-        } else {
-          document.execCommand('insertText', false, token);
-        }
-      } catch {
-        document.execCommand('insertText', false, token);
-      }
-      // highlight
-      highlightPlaceholdersInEditor();
+        // highlight
+        highlightPlaceholdersInEditor();
     }
 
     // --- Drag&Drop и подсветка плейсхолдеров ---
     function enableDnDForChips() {
-      document.querySelectorAll('.chips .chip').forEach(chip => {
-        if (chip.dataset.dnd === '1') return;
-        chip.dataset.dnd = '1';
-        chip.setAttribute('draggable', 'true');
-        chip.addEventListener('dragstart', (e) => {
-          const token = `{{${chip.title.replace('Вставить ', '').replace(/[{}]/g,'').trim()}}}`;
-          e.dataTransfer.setData('text/plain', token);
-          chip.classList.add('dragging');
+        document.querySelectorAll('.chips .chip').forEach(chip => {
+            if (chip.dataset.dnd === '1') return;
+            chip.dataset.dnd = '1';
+            chip.setAttribute('draggable', 'true');
+            chip.addEventListener('dragstart', (e) => {
+                const token = `{{${chip.title.replace('Вставить ', '').replace(/[{}]/g, '').trim()}}}`;
+                e.dataTransfer.setData('text/plain', token);
+                chip.classList.add('dragging');
+            });
+            chip.addEventListener('dragend', () => chip.classList.remove('dragging'));
+            // после клика (вставки) подсветить
+            chip.addEventListener('click', () => setTimeout(highlightPlaceholdersInEditor, 0));
         });
-        chip.addEventListener('dragend', () => chip.classList.remove('dragging'));
-        // после клика (вставки) подсветить
-        chip.addEventListener('click', () => setTimeout(highlightPlaceholdersInEditor, 0));
-      });
-      if (templateEditor) {
-        templateEditor.addEventListener('dragover', (e)=>{ e.preventDefault(); templateEditor.classList.add('drag-over'); });
-        templateEditor.addEventListener('dragleave', ()=> templateEditor.classList.remove('drag-over'));
-        templateEditor.addEventListener('drop', (e)=>{
-          e.preventDefault();
-          templateEditor.classList.remove('drag-over');
-          const text = e.dataTransfer.getData('text/plain');
-          if (text) {
-            templateEditor.focus();
-            document.execCommand('insertText', false, text);
-            highlightPlaceholdersInEditor();
-            templateEditor.classList.add('drop-anim');
-            setTimeout(()=>templateEditor.classList.remove('drop-anim'), 300);
-          }
-        });
-        templateEditor.addEventListener('blur', highlightPlaceholdersInEditor);
-      }
+        if (templateEditor) {
+            templateEditor.addEventListener('dragover', (e) => { e.preventDefault(); templateEditor.classList.add('drag-over'); });
+            templateEditor.addEventListener('dragleave', () => templateEditor.classList.remove('drag-over'));
+            templateEditor.addEventListener('drop', (e) => {
+                e.preventDefault();
+                templateEditor.classList.remove('drag-over');
+                const text = e.dataTransfer.getData('text/plain');
+                if (text) {
+                    templateEditor.focus();
+                    document.execCommand('insertText', false, text);
+                    highlightPlaceholdersInEditor();
+                    templateEditor.classList.add('drop-anim');
+                    setTimeout(() => templateEditor.classList.remove('drop-anim'), 300);
+                }
+            });
+            templateEditor.addEventListener('blur', highlightPlaceholdersInEditor);
+        }
     }
 
     function highlightPlaceholdersInEditor() {
-      if (!templateEditor) return;
-      try {
-        let html = templateEditor.innerHTML;
-        html = html.replace(/<span class=\"ph\">(.*?)<\/span>/g, '$1');
-        html = html.replace(/(\{\{\s*[\w\.\-]+\s*\}\})/g, '<span class="ph">$1<\/span>');
-        templateEditor.innerHTML = html;
-      } catch {}
+        if (!templateEditor) return;
+        try {
+            let html = templateEditor.innerHTML;
+            html = html.replace(/<span class=\"ph\">(.*?)<\/span>/g, '$1');
+            html = html.replace(/(\{\{\s*[\w\.\-]+\s*\}\})/g, '<span class="ph">$1<\/span>');
+            templateEditor.innerHTML = html;
+        } catch { }
     }
 
     // Навешиваем кликовую вставку, которая сохраняет позицию курсора
     function addChipClickHandlers() {
-      document.querySelectorAll('.chips .chip').forEach(chip => {
-        if (chip.dataset.clickBound === '1') return;
-        chip.dataset.clickBound = '1';
-        chip.addEventListener('mousedown', (e) => e.preventDefault());
-        chip.addEventListener('click', () => {
-          const m = /\{\{.*?\}\}/.exec(chip.title || '');
-          const token = m ? m[0] : `{{${chip.textContent.trim()}}}`;
-          insertAtSavedRange(token);
+        document.querySelectorAll('.chips .chip').forEach(chip => {
+            if (chip.dataset.clickBound === '1') return;
+            chip.dataset.clickBound = '1';
+            chip.addEventListener('mousedown', (e) => e.preventDefault());
+            chip.addEventListener('click', () => {
+                const m = /\{\{.*?\}\}/.exec(chip.title || '');
+                const token = m ? m[0] : `{{${chip.textContent.trim()}}}`;
+                insertAtSavedRange(token);
+            });
         });
-      });
     }
 
     // --- Предпросмотр шаблона ---
@@ -2864,138 +2957,138 @@ bikeNextStatusRadios.forEach(radio => {
     const templatePreviewContent = document.getElementById('template-preview-content');
     const templatePreviewClose = document.getElementById('template-preview-close');
 
-    function pathGet(obj, path){ try{ return path.split('.').reduce((o,k)=>(o&&o[k]!=null)?o[k]:'', obj); }catch{return ''} }
-    function buildPreviewHTML(){
-      const ctx = {
-        client:{ full_name:'Иванов Иван Иванович', first_name:'Иван', last_name:'Иванов', middle_name:'Иванович', passport_series:'12 34', passport_number:'567890', issued_by:'ОВД г. Москва', issued_at:'01.01.2020', birth_date:'02.02.1990', city:'Москва', address:'ул. Пушкина, д.1' },
-        tariff:{ title:'Золотой', duration_days:7, price_rub:3750 },
-        rental:{ id:12345, starts_at:'2025-09-01', ends_at:'2025-09-08', bike_id:'00001' },
-        now:{ date: new Date().toLocaleDateString('ru-RU'), time: new Date().toLocaleTimeString('ru-RU') }
-      };
-      let html = templateEditor ? templateEditor.innerHTML : '';
-      html = html.replace(/\{\{\s*([\w\.\-]+)\s*\}\}/g, (_,k)=>{ const v = pathGet(ctx,k); return v===undefined? '': String(v)});
-      return html;
+    function pathGet(obj, path) { try { return path.split('.').reduce((o, k) => (o && o[k] != null) ? o[k] : '', obj); } catch { return '' } }
+    function buildPreviewHTML() {
+        const ctx = {
+            client: { full_name: 'Иванов Иван Иванович', first_name: 'Иван', last_name: 'Иванов', middle_name: 'Иванович', passport_series: '12 34', passport_number: '567890', issued_by: 'ОВД г. Москва', issued_at: '01.01.2020', birth_date: '02.02.1990', city: 'Москва', address: 'ул. Пушкина, д.1' },
+            tariff: { title: 'Золотой', duration_days: 7, price_rub: 3750 },
+            rental: { id: 12345, starts_at: '2025-09-01', ends_at: '2025-09-08', bike_id: '00001' },
+            now: { date: new Date().toLocaleDateString('ru-RU'), time: new Date().toLocaleTimeString('ru-RU') }
+        };
+        let html = templateEditor ? templateEditor.innerHTML : '';
+        html = html.replace(/\{\{\s*([\w\.\-]+)\s*\}\}/g, (_, k) => { const v = pathGet(ctx, k); return v === undefined ? '' : String(v) });
+        return html;
     }
-    function openTemplatePreview(){ if (!templatePreviewOverlay||!templatePreviewContent) return; templatePreviewContent.innerHTML = buildPreviewHTML(); templatePreviewOverlay.classList.remove('hidden'); }
-    function closeTemplatePreview(){ if (templatePreviewOverlay) templatePreviewOverlay.classList.add('hidden'); }
+    function openTemplatePreview() { if (!templatePreviewOverlay || !templatePreviewContent) return; templatePreviewContent.innerHTML = buildPreviewHTML(); templatePreviewOverlay.classList.remove('hidden'); }
+    function closeTemplatePreview() { if (templatePreviewOverlay) templatePreviewOverlay.classList.add('hidden'); }
     if (templatePreviewBtn) templatePreviewBtn.addEventListener('click', openTemplatePreview);
     if (templatePreviewClose) templatePreviewClose.addEventListener('click', closeTemplatePreview);
-    if (templatePreviewOverlay) templatePreviewOverlay.addEventListener('click', (e)=>{ if (e.target === templatePreviewOverlay) closeTemplatePreview(); });
+    if (templatePreviewOverlay) templatePreviewOverlay.addEventListener('click', (e) => { if (e.target === templatePreviewOverlay) closeTemplatePreview(); });
 
     function initTemplateEditor() {
-      if (templateEditorInstance) {
-        templateEditorInstance.destroy();
-      }
-      const editorElement = document.getElementById('template-editor');
-      if (editorElement) {
-        templateEditorInstance = new TipTap.Editor({
-          element: editorElement,
-          extensions: [
-            TipTap.StarterKit,
-          ],
-          content: '',
-          onUpdate: ({ editor }) => {
-            // Optional: handle updates
-          },
-        });
-      }
+        if (templateEditorInstance) {
+            templateEditorInstance.destroy();
+        }
+        const editorElement = document.getElementById('template-editor');
+        if (editorElement) {
+            templateEditorInstance = new TipTap.Editor({
+                element: editorElement,
+                extensions: [
+                    TipTap.StarterKit,
+                ],
+                content: '',
+                onUpdate: ({ editor }) => {
+                    // Optional: handle updates
+                },
+            });
+        }
     }
 
     async function loadTemplates() {
-      try {
-        // chips
-        mountChips(chipsClient, PLACEHOLDERS.client);
-        mountChips(chipsTariff, PLACEHOLDERS.tariff);
-        mountChips(chipsRental, PLACEHOLDERS.rental);
-        mountChips(chipsAux, PLACEHOLDERS.aux);
-        addChipClickHandlers();
+        try {
+            // chips
+            mountChips(chipsClient, PLACEHOLDERS.client);
+            mountChips(chipsTariff, PLACEHOLDERS.tariff);
+            mountChips(chipsRental, PLACEHOLDERS.rental);
+            mountChips(chipsAux, PLACEHOLDERS.aux);
+            addChipClickHandlers();
 
-        // включаем перетаскивание и постподсветку
-        enableDnDForChips();
+            // включаем перетаскивание и постподсветку
+            enableDnDForChips();
 
-        // Initialize TipTap editor
-        initTemplateEditor();
+            // Initialize TipTap editor
+            initTemplateEditor();
 
-        const { data, error } = await supabase.from('contract_templates').select('*').order('id', { ascending: true });
-        if (error) throw error;
-        if (templatesTableBody) {
-          templatesTableBody.innerHTML = '';
-          (data||[]).forEach(t => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
+            const { data, error } = await supabase.from('contract_templates').select('*').order('id', { ascending: true });
+            if (error) throw error;
+            if (templatesTableBody) {
+                templatesTableBody.innerHTML = '';
+                (data || []).forEach(t => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
               <td>${t.name}</td>
               <td>${t.is_active ? 'Да' : 'Нет'}</td>
               <td class="table-actions">
                 <button type="button" class="template-edit-btn" data-id="${t.id}">Ред.</button>
                 <button type="button" class="template-delete-btn" data-id="${t.id}">Удалить</button>
               </td>`;
-            templatesTableBody.appendChild(tr);
-          });
+                    templatesTableBody.appendChild(tr);
+                });
+            }
+            if (contractTemplateSelect) {
+                const selected = contractTemplateSelect.value;
+                contractTemplateSelect.innerHTML = '<option value="">— Не выбран —</option>' + (data || []).map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+                if (selected) contractTemplateSelect.value = selected;
+            }
+        } catch (err) {
+            console.error('Ошибка загрузки шаблонов:', err);
         }
-        if (contractTemplateSelect) {
-          const selected = contractTemplateSelect.value;
-          contractTemplateSelect.innerHTML = '<option value="">— Не выбран —</option>' + (data||[]).map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-          if (selected) contractTemplateSelect.value = selected;
-        }
-      } catch (err) {
-        console.error('Ошибка загрузки шаблонов:', err);
-      }
     }
 
     async function saveTemplate() {
-      if (!templateEditorInstance) return;
-      const id = (document.getElementById('template-id')||{}).value;
-      const name = (document.getElementById('template-name')||{}).value || 'Без названия';
-      const isActive = (document.getElementById('template-active')||{checked:true}).checked;
-      const content = templateEditorInstance.getHTML() || '';
-      const rec = { name, content, is_active: isActive, placeholders: PLACEHOLDERS };
-      try {
-        let resp;
-        if (id) resp = await supabase.from('contract_templates').update(rec).eq('id', id).select('id').single();
-        else resp = await supabase.from('contract_templates').insert([rec]).select('id').single();
-        if (resp.error) throw resp.error;
-        document.getElementById('template-id').value = resp.data?.id || id || '';
-        await loadTemplates();
-        alert('Шаблон сохранён');
-      } catch (err) {
-        alert('Ошибка сохранения шаблона: ' + err.message);
-      }
+        if (!templateEditorInstance) return;
+        const id = (document.getElementById('template-id') || {}).value;
+        const name = (document.getElementById('template-name') || {}).value || 'Без названия';
+        const isActive = (document.getElementById('template-active') || { checked: true }).checked;
+        const content = templateEditorInstance.getHTML() || '';
+        const rec = { name, content, is_active: isActive, placeholders: PLACEHOLDERS };
+        try {
+            let resp;
+            if (id) resp = await supabase.from('contract_templates').update(rec).eq('id', id).select('id').single();
+            else resp = await supabase.from('contract_templates').insert([rec]).select('id').single();
+            if (resp.error) throw resp.error;
+            document.getElementById('template-id').value = resp.data?.id || id || '';
+            await loadTemplates();
+            alert('Шаблон сохранён');
+        } catch (err) {
+            alert('Ошибка сохранения шаблона: ' + err.message);
+        }
     }
 
     function newTemplate() {
-      (document.getElementById('template-id')||{}).value = '';
-      (document.getElementById('template-name')||{}).value = '';
-      (document.getElementById('template-active')||{}).checked = true;
-      if (templateEditor) templateEditor.innerHTML = '';
+        (document.getElementById('template-id') || {}).value = '';
+        (document.getElementById('template-name') || {}).value = '';
+        (document.getElementById('template-active') || {}).checked = true;
+        if (templateEditor) templateEditor.innerHTML = '';
     }
 
     if (editorToolbar) editorToolbar.addEventListener('click', toolbarAction);
     document.getElementById('templates-table')?.addEventListener('click', async (e) => {
-      const editBtn = e.target.closest('.template-edit-btn');
-      const delBtn = e.target.closest('.template-delete-btn');
-      if (editBtn) {
-        const id = editBtn.dataset.id;
-        const { data, error } = await supabase.from('contract_templates').select('*').eq('id', id).single();
-        if (!error && data) {
-          document.getElementById('template-id').value = data.id;
-          document.getElementById('template-name').value = data.name;
-          document.getElementById('template-active').checked = !!data.is_active;
-          if (templateEditor) templateEditor.innerHTML = data.content || '';
+        const editBtn = e.target.closest('.template-edit-btn');
+        const delBtn = e.target.closest('.template-delete-btn');
+        if (editBtn) {
+            const id = editBtn.dataset.id;
+            const { data, error } = await supabase.from('contract_templates').select('*').eq('id', id).single();
+            if (!error && data) {
+                document.getElementById('template-id').value = data.id;
+                document.getElementById('template-name').value = data.name;
+                document.getElementById('template-active').checked = !!data.is_active;
+                if (templateEditor) templateEditor.innerHTML = data.content || '';
+            }
         }
-      }
-      if (delBtn) {
-        const id = delBtn.dataset.id;
-        if (!confirm('Удалить шаблон?')) return;
-        const { error } = await supabase.from('contract_templates').delete().eq('id', id);
-        if (error) alert('Ошибка удаления: ' + error.message);
-        await loadTemplates();
-      }
+        if (delBtn) {
+            const id = delBtn.dataset.id;
+            if (!confirm('Удалить шаблон?')) return;
+            const { error } = await supabase.from('contract_templates').delete().eq('id', id);
+            if (error) alert('Ошибка удаления: ' + error.message);
+            await loadTemplates();
+        }
     });
     if (templateSaveBtn) templateSaveBtn.addEventListener('click', saveTemplate);
     if (templateNewBtn) templateNewBtn.addEventListener('click', newTemplate);
 
     // Попробуем заранее загрузить шаблоны (для выпадающего списка у тарифов)
-    loadTemplates().catch(()=>{});
+    loadTemplates().catch(() => { });
 
     // --- НОВЫЙ БЛОК: Логика предпросмотра тарифов как у клиента ---
 

@@ -689,7 +689,7 @@ if (status === 'approved') {
         .from('rentals')
         .select('*, tariffs(*)')
         .eq('user_id', userId)
-        .in('status', ['active', 'overdue', 'pending_return', 'awaiting_contract_signing'])
+        .in('status', ['active', 'overdue', 'pending_return', 'awaiting_battery_assignment', 'awaiting_contract_signing'])
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
@@ -725,8 +725,11 @@ if (status === 'approved') {
 
         // Отображаем нужный экран в зависимости от текущего статуса
         switch(rental.status) {
-            case 'awaiting_contract_signing': // <-- НОВЫЙ СТАТУС
+            case 'awaiting_battery_assignment': // Ожидает АКБ
                 renderPendingBatteryView(mainContent); // Показываем экран "Дождитесь..."
+                break;
+            case 'awaiting_contract_signing': // Ожидает подписания
+                renderAwaitingContractView(rental, mainContent);
                 break;
             case 'awaiting_contract_signing':
                 // Теперь этот статус снова означает "надо подписать"
