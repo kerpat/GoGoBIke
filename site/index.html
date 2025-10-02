@@ -716,7 +716,7 @@
         try {
             // Сначала получаем стоимость бронирования из настроек
             const { data: settings, error: settingsError } = await supabase
-                .from('settings')
+                .from('app_settings')
                 .select('value')
                 .eq('key', 'booking_cost_rub')
                 .single();
@@ -1340,7 +1340,7 @@ function initializeMainScreenEventListeners() {
         async function loadBookingCost() {
             try {
                 const { data: settings, error } = await supabase
-                    .from('settings')
+                    .from('app_settings')
                     .select('value')
                     .eq('key', 'booking_cost_rub')
                     .single();

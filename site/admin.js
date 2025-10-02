@@ -3326,7 +3326,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadBookingCost() {
         try {
             const { data, error } = await supabase
-                .from('settings')
+                .from('app_settings')
                 .select('value')
                 .eq('key', 'booking_cost_rub')
                 .single();
@@ -3357,7 +3357,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const { error } = await supabase
-                .from('settings')
+                .from('app_settings')
                 .upsert({
                     key: 'booking_cost_rub',
                     value: cost.toString(),
