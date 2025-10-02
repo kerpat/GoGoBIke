@@ -1394,17 +1394,6 @@ function initializeMainScreenEventListeners() {
         rentBtnElement.textContent = 'Арендовать';
     }
 };
-        const processBooking = () => {
-            availableBikesCount.textContent = '99';
-            changeBikeImage('bike00001.png');
-            progressBarFill.style.width = '100%';
-            progressBarFill.style.backgroundColor = '#f5a623';
-            progressStartLabel.textContent = 'Забронирован';
-            progressEndLabel.textContent = 'Остался 1 час';
-            addTransactionToHistory({ type: 'Бронь', detail: 'На 1 час', amount: 0, icon: 'book' });
-            qrModal.classList.add('hidden');
-            showToast(bookingSuccessToast);
-        };
 
         // === ЛОГИКА ДЛЯ ТАРИФОВ GoGoBike ===
         // Определяем данные по тарифам: стоимость и длительность аренды (в днях)
@@ -2047,27 +2036,6 @@ function initializeMainScreenEventListeners() {
                 toggleButtonLoading(confirmIdBtn, false, 'Найти и арендовать', 'Поиск...');
             }
         });
-        bookingBtn.addEventListener('click', () => bookingListModal.classList.remove('hidden'));
-        bikeList.addEventListener('click', (e) => {
-            const bikeItem = e.target.closest('.bike-list-item');
-            if (bikeItem) {
-                // Сохраняем выбранный ID
-                const selectedId = bikeItem.dataset.bikeId;
-                bookingListModal.classList.add('hidden');
-                rentBtn.textContent = 'Забронировать на час';
-                rentBtn.dataset.action = 'book';
-                const qrTitleEl = qrModal.querySelector('h2');
-                if (qrTitleEl) { qrTitleEl.innerHTML = `Вы бронируете<br>Электровелосипед #${selectedId || '00001'}`; }
-                qrModal.classList.remove('hidden');
-            }
-        });
-        rentBtn.addEventListener('click', () => {
-            if (rentBtn.dataset.action === 'book') {
-                processBooking();
-            } else {
-                processRental();
-            }
-        });
 
         payBtn.addEventListener('click', async () => {
             const amount = parseFloat(amountInput.value);
@@ -2224,8 +2192,9 @@ function initializeMainScreenEventListeners() {
 
             if (booking) {
                 e.preventDefault();
-                const modal = document.getElementById('booking-list-modal');
+                const modal = document.getElementById('confirm-booking-modal');
                 if (modal) modal.classList.remove('hidden');
+                return;
             }
 
             if (returnBtn) {
