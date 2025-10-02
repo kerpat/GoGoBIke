@@ -2221,7 +2221,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td class="progress-cell">
                          <span class="time-left-display" style="font-size: 0.9em; color: #666;">Загрузка...</span>
                          <div class="progress-bar-container" style="margin-top: 4px;">
-                            <div class="progress-bar-fill" style="width: 100%;"></div>
+                            <div class="progress-bar progress-bar-fill" style="width: 100%;"></div>
                          </div>
                     </td>
                     <td class="table-actions">
@@ -2243,8 +2243,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const minutes = Math.floor(timeLeftMs / 60000);
                     const seconds = Math.floor((timeLeftMs % 60000) / 1000);
 
-                    let progressBarColor = '#26b999'; // Green
-                    if (progress < 50) progressBarColor = '#f5a623'; // Orange
+                    let progressBarColor = '#f5a623'; // Orange by default
                     if (progress < 15) progressBarColor = '#e53e3e'; // Red
 
                     row.querySelector('.time-left-display').textContent = `${minutes} мин. ${seconds} сек.`;
