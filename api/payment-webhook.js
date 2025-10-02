@@ -192,7 +192,8 @@ async function processSucceededPayment(notification) {
             amount_rub: paymentAmount,
             status: 'succeeded',
             payment_type: 'booking',
-            yookassa_payment_id: yookassaPaymentId
+            yookassa_payment_id: yookassaPaymentId,
+            description: 'Оплата бронирования + пополнение баланса'
         });
 
         if (paymentError) {
