@@ -269,6 +269,13 @@ body.tg-webapp .app-main h2,
   padding: 18px 22px;
 }
 
+.btn-danger {
+  background-color: #fff1f2; /* Светло-красный фон */
+  color: #e53e3e; /* Красный текст */
+  font-size: 1rem;
+  border: 2px solid #fecdd3; /* Светло-красная рамка */
+}
+
 .btn-secondary svg {
   color: var(--dark-green);
   width: 22px;

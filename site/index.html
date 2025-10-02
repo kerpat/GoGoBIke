@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="config.js"></script>
     <title>Bike App</title>
-    <link rel="stylesheet" href="style.css?v=7.7">
+    <link rel="stylesheet" href="style.css?v=7.8">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://briulxpnjxlsgfgkqvfh.supabase.co" crossorigin>
@@ -688,7 +688,7 @@
             <h2>У вас действует бронь до ${endsDate.toLocaleTimeString('ru-RU', { timeZone: 'Europe/Moscow', hour: '2-digit', minute: '2-digit' })}</h2>
             <p style="text-align: center; color: var(--text-secondary); margin-top: 10px; margin-bottom: 20px;">Пожалуйста, подойдите к точке выдачи, чтобы начать аренду.</p>
             <div class="action-buttons">
-                 <button class="btn btn-danger" id="cancel-booking-btn" data-booking-id="${booking.id}">Отменить бронь</button>
+                 <button class="btn btn-danger" id="cancel-booking-btn" data-booking-id="${booking.id}" style="border-color: #e53e3e; color: #e53e3e;">Отменить бронь</button>
             </div>
         `;
 
