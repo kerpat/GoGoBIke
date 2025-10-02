@@ -2332,6 +2332,60 @@ clientsTableBody.addEventListener('click', async (e) => {
         });
     }
 
+    // --- НОВЫЙ БЛОК: Логика модального окна выбора АКБ ---
+
+    if (assignBatteriesCancelBtn) {
+        assignBatteriesCancelBtn.addEventListener('click', () => assignBatteriesModal.classList.add('hidden'));
+    }
+
+    if (assignBatteriesSubmitBtn) {
+        assignBatteriesSubmitBtn.addEventListener('click', async () => {
+            const rentalId = assignBatteriesRentalIdInput.value;
+            const selectedCheckboxes = batterySelectList.querySelectorAll('input[type="checkbox"]:checked');
+            const selectedBatteryIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.value, 10));
+
+            if (selectedBatteryIds.length === 0) {
+                alert('Пожалуйста, выберите хотя бы один аккумулятор.');
+                return;
+            }
+
+            toggleButtonLoading(assignBatteriesSubmitBtn, true, 'Подтвердить', 'Активация...');
+
+            try {
+                // Шаг 1: Обновить статус выбранных аккумуляторов на 'in_use'
+                const { error: batteryUpdateError } = await supabase
+                    .from('batteries')
+                    .update({ status: 'in_use' })
+                    .in('id', selectedBatteryIds);
+                if (batteryUpdateError) throw new Error('Ошибка обновления статуса АКБ: ' + batteryUpdateError.message);
+
+                // Шаг 2: Создать записи в связующей таблице rental_batteries
+                const rentalBatteryRecords = selectedBatteryIds.map(battery_id => ({
+                    rental_id: rentalId,
+                    battery_id: battery_id
+                }));
+                const { error: linkError } = await supabase.from('rental_batteries').insert(rentalBatteryRecords);
+                if (linkError) throw new Error('Ошибка привязки АКБ к аренде: ' + linkError.message);
+
+                // Шаг 3: Обновить статус самой аренды на 'awaiting_contract_signing'
+                const { error: rentalUpdateError } = await supabase
+                    .from('rentals')
+                    .update({ status: 'awaiting_contract_signing' })
+                    .eq('id', rentalId);
+                if (rentalUpdateError) throw new Error('Ошибка перевода аренды на подписание: ' + rentalUpdateError.message);
+
+                alert('Аккумуляторы назначены! Клиент получил уведомление о необходимости подписать договор.');
+                assignBatteriesModal.classList.add('hidden');
+                loadAssignments(); // Обновляем список заявок
+
+            } catch (err) {
+                alert('Произошла ошибка: ' + err.message);
+            } finally {
+                toggleButtonLoading(assignBatteriesSubmitBtn, false, 'Подтвердить', 'Активация...');
+            }
+        });
+    }
+
     // --- Client Notes Logic ---
     const clientNotesList = document.getElementById('client-notes-list');
     const clientNoteInput = document.getElementById('client-note-input');
@@ -2545,70 +2599,12 @@ clientsTableBody.addEventListener('click', async (e) => {
                 if (buttonToToggle) toggleButtonLoading(buttonToToggle, false, buttonToToggle.textContent, 'Обработка...');
             }
         };
-
-        // Show/hide service reason input
-        bikeNextStatusRadios.forEach(radio => {
-            radio.addEventListener('change', () => {
-                serviceReasonGroup.classList.toggle('hidden', radio.value !== 'in_service');
-            });
-        
-            // --- НОВЫЙ БЛОК: Логика модального окна выбора АКБ ---
-        
-            if (assignBatteriesCancelBtn) {
-                assignBatteriesCancelBtn.addEventListener('click', () => assignBatteriesModal.classList.add('hidden'));
-            }
-        
-            if (assignBatteriesSubmitBtn) {
-                assignBatteriesSubmitBtn.addEventListener('click', async () => {
-                    const rentalId = assignBatteriesRentalIdInput.value;
-                    const selectedCheckboxes = batterySelectList.querySelectorAll('input[type="checkbox"]:checked');
-                    const selectedBatteryIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.value, 10));
-        
-                    if (selectedBatteryIds.length === 0) {
-                        alert('Пожалуйста, выберите хотя бы один аккумулятор.');
-                        return;
-                    }
-        
-                    toggleButtonLoading(assignBatteriesSubmitBtn, true, 'Подтвердить', 'Активация...');
-        
-                    try {
-                        // Шаг 1: Обновить статус выбранных аккумуляторов на 'in_use'
-                        const { error: batteryUpdateError } = await supabase
-                            .from('batteries')
-                            .update({ status: 'in_use' })
-                            .in('id', selectedBatteryIds);
-                        if (batteryUpdateError) throw new Error('Ошибка обновления статуса АКБ: ' + batteryUpdateError.message);
-        
-                        // Шаг 2: Создать записи в связующей таблице rental_batteries
-                        const rentalBatteryRecords = selectedBatteryIds.map(battery_id => ({
-                            rental_id: rentalId,
-                            battery_id: battery_id
-                        }));
-                        const { error: linkError } = await supabase.from('rental_batteries').insert(rentalBatteryRecords);
-                        if (linkError) throw new Error('Ошибка привязки АКБ к аренде: ' + linkError.message);
-        
-                        // Шаг 3: Обновить статус самой аренды на 'awaiting_contract_signing'
-                        // <-- ВОТ ГЛАВНОЕ ИЗМЕНЕНИЕ
-                        const { error: rentalUpdateError } = await supabase
-                            .from('rentals')
-                            .update({ status: 'awaiting_contract_signing' }) // НЕ 'active', а 'awaiting_contract_signing'
-                            .eq('id', rentalId);
-                        if (rentalUpdateError) throw new Error('Ошибка перевода аренды на подписание: ' + rentalUpdateError.message);
-            
-                        alert('Аккумуляторы назначены! Клиент получил уведомление о необходимости подписать договор.');
-                        assignBatteriesModal.classList.add('hidden');
-                        loadAssignments(); // Обновляем список заявок
-        
-                    } catch (err) {
-                        alert('Произошла ошибка: ' + err.message);
-                        // Тут в идеале нужна логика "отката" изменений, но для начала и так сойдет.
-                    } finally {
-                        toggleButtonLoading(assignBatteriesSubmitBtn, false, 'Подтвердить', 'Активация...');
-                    }
-                });
-            }
-        
-        });
+// Show/hide service reason input
+bikeNextStatusRadios.forEach(radio => {
+    radio.addEventListener('change', () => {
+        serviceReasonGroup.classList.toggle('hidden', radio.value !== 'in_service');
+    });
+});
         // Modal close events
         returnProcessCloseBtn.addEventListener('click', () => returnProcessModal.classList.add('hidden'));
         returnProcessModal.addEventListener('click', (e) => {
