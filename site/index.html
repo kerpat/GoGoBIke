@@ -1240,33 +1240,36 @@ function initializeMainScreenEventListeners() {
         // +++ ДОБАВЬТЕ ЭТОТ БЛОК КОДА +++
         // Проверяем, вернулся ли пользователь после успешной оплаты
         const urlParams = new URLSearchParams(window.location.search);
-        const paymentSuccess = urlParams.get('payment_success');
+        const rentalSuccess = urlParams.get('rental_success');
+        const topupSuccess = urlParams.get('topup_success');
         const bookingSuccess = urlParams.get('booking_success');
 
-        if (paymentSuccess === 'true') {
-            // Показываем модальное окно с просьбой подписать договор
+        if (rentalSuccess === 'true') {
+            // Показываем модальное окно "Аренда оформлена!"
             const promptModal = document.getElementById('post-rental-prompt-modal');
             if (promptModal) {
                 promptModal.classList.remove('hidden');
             }
+        }
 
-            // Обновляем данные пользователя после оплаты
-            loadUserData();
-
-            // (Опционально, но рекомендуется) Очищаем URL, чтобы при перезагрузке
-            // страницы модальное окно не появилось снова.
-            // Это заменяет URL в истории браузера без перезагрузки страницы.
-            window.history.replaceState(null, '', window.location.pathname);
+        if (topupSuccess === 'true') {
+            // Показываем уведомление "Баланс успешно пополнен"
+            const successToast = document.getElementById('success-toast');
+            if (successToast) {
+                // Меняем текст на более универсальный
+                successToast.querySelector('.toast-message').innerHTML = 'Баланс успешно пополнен!';
+                showToast(successToast); // showToast - ваша существующая функция
+            }
         }
 
         if (bookingSuccess === 'true') {
             // Показываем уведомление об успешном бронировании
             showToast(bookingSuccessToast);
+        }
 
-            // Обновляем данные пользователя после бронирования
-            loadUserData();
-
-            // Очищаем URL параметр
+        // Обновляем данные пользователя и очищаем URL, если был любой из успешных редиректов
+        if (rentalSuccess || topupSuccess || bookingSuccess) {
+            loadUserData(); // Перезагружаем данные, чтобы увидеть новый баланс
             window.history.replaceState(null, '', window.location.pathname);
         }
         // --- КОНЕЦ НОВОГО БЛОКА ---

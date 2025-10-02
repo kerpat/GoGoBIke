@@ -174,11 +174,13 @@ async function handleCreatePayment(body) {
     let description = 'Пополнение баланса GoGoBike';
     let amountToDebitFromBalance = 0;
 
-    // <<< НАЧАЛО КЛЮЧЕВЫХ ИЗМЕНЕНИЙ >>>
+    // <<< НАЧАЛО ИЗМЕНЕНИЙ >>>
+    let successRedirectUrl; // Новая переменная для URL
 
-    // Разделяем логику для АРЕНДЫ и для ПОПОЛНЕНИЯ
     if (tariffId) {
-        // --- ЭТО СЦЕНАРИЙ АРЕНДЫ ---
+        // --- СЦЕНАРИЙ АРЕНДЫ ---
+        successRedirectUrl = 'https://go-go-b-ike.vercel.app/?rental_success=true';
+        // ... (остальная логика для аренды остается здесь)
         const { data: tariffData, error: tariffError } = await supabaseAdmin.from('tariffs').select('price_rub').eq('id', tariffId).single();
         if (tariffError || !tariffData) throw new Error('Tariff not found.');
 
@@ -199,16 +201,15 @@ async function handleCreatePayment(body) {
             // Обычная оплата полной стоимости с карты
             amount = tariffCost;
         }
-
     } else {
-        // --- ЭТО СЦЕНАРИЙ ОБЫЧНОГО ПОПОЛНЕНИЯ ---
+        // --- СЦЕНАРИЙ ОБЫЧНОГО ПОПОЛНЕНИЯ ---
+        successRedirectUrl = 'https://go-go-b-ike.vercel.app/?topup_success=true';
         if (!amountFromClient || amountFromClient <= 0) {
             throw new Error('Invalid amount specified for top-up.');
         }
         amount = Number.parseFloat(amountFromClient);
     }
-
-    // <<< КОНЕЦ КЛЮЧЕВЫХ ИЗМЕНЕНИЙ >>>
+    // <<< КОНЕЦ ИЗМЕНЕНИЙ >>>
 
     if (!Number.isFinite(amount) || amount <= 0) {
         throw new Error('Invalid final amount for payment.');
@@ -240,17 +241,6 @@ async function handleCreatePayment(body) {
         },
         save_payment_method: true,
         receipt: {
-            customer: { phone: normalizedPhone }, // Теперь переменная существует
-            items: [{
-                description,
-                quantity: '1.00',
-                amount: { value: amount.toFixed(2), currency: 'RUB' },
-                vat_code: '1',
-                payment_mode: 'full_payment',
-                payment_subject: 'service'
-            }]
-        },
-        receipt: {
             customer: { phone: normalizedPhone },
             items: [{
                 description,
@@ -266,7 +256,8 @@ async function handleCreatePayment(body) {
     if (clientData.yookassa_payment_method_id) {
         paymentData.payment_method_id = clientData.yookassa_payment_method_id;
     } else {
-        paymentData.confirmation = { type: 'redirect', return_url: return_url || 'https://go-go-b-ike.vercel.app/?payment_success=true' };
+        // Используем либо переданный URL, либо наш новый динамический URL
+        paymentData.confirmation = { type: 'redirect', return_url: return_url || successRedirectUrl };
     }
 
     const authString = Buffer.from(`${process.env.YOOKASSA_SHOP_ID}:${process.env.YOOKASSA_SECRET_KEY}`).toString('base64');
