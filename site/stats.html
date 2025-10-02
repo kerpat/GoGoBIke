@@ -455,7 +455,7 @@
 
                 const { data: payments, error } = await supabase
                     .from('payments')
-                    .select('id, amount_rub, payment_type, payment_method_title, status, created_at, description')
+                    .select('id, amount_rub, payment_type, method, status, created_at, description')
                     .eq('client_id', userId)
                     .eq('status', 'succeeded')
                     .order('created_at', { ascending: false });

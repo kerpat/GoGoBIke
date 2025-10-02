@@ -1041,6 +1041,38 @@ select:focus::placeholder {
   font-weight: 700;
 }
 
+/* Payment details modal */
+#payment-details-content .info-row {
+  margin-bottom: 16px;
+  font-size: .95rem;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  background: var(--surface-2);
+  border-radius: 8px;
+  transition: background var(--transition-fast);
+}
+
+#payment-details-content .info-row:hover {
+  background: var(--surface-3);
+}
+
+#payment-details-content .info-row strong {
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: .85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+#payment-details-content .info-row span {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
 #recognized-data-container {
   background: var(--surface-2);
   padding: 12px;
