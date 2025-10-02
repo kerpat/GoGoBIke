@@ -19,6 +19,67 @@
 #id-input-modal .modal-form-group {
     text-align: center;
 }
+
+/* === СТИЛИ ДЛЯ ОТОБРАЖЕНИЯ АККУМУЛЯТОРОВ === */
+
+/* Контейнер для информации об оборудовании */
+.rental-equipment-info {
+    display: flex;
+    flex-direction: column; /* Элементы друг под другом */
+    align-items: flex-start; /* Выравнивание по левому краю */
+    gap: 8px; /* Отступ между "В комплекте" и списком АКБ */
+    padding: 10px 15px;
+    background-color: var(--card-bg); /* Легкий фон, как у карточек */
+    border-radius: 16px;
+    width: 100%;
+    margin-bottom: 20px; /* Отступ до прогресс-бара */
+}
+
+/* Лейбл "В комплекте:" */
+.equipment-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-secondary); /* Приглушенный цвет */
+}
+
+.equipment-label svg {
+    stroke: var(--text-secondary); /* Цвет иконки совпадает с текстом */
+    width: 16px;
+    height: 16px;
+}
+
+/* Контейнер для самих чипов с АКБ */
+.battery-chips {
+    display: flex;
+    flex-wrap: wrap; /* Позволяет чипам переноситься на новую строку */
+    gap: 8px; /* Отступ между чипами */
+}
+
+/* Стиль одного чипа с номером аккумулятора */
+.battery-chip {
+    display: inline-flex; /* Чтобы блок был по размеру контента */
+    align-items: center;
+    gap: 8px; /* Расстояние между иконкой и текстом */
+    background-color: #ffffff; /* Белый фон */
+    border: 1px solid var(--border); /* Тонкая рамка */
+    padding: 6px 12px;
+    border-radius: 20px; /* Скругление для формы "таблетки" */
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--dark-green);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Легкая тень */
+}
+
+/* Стили для SVG-иконки внутри чипа */
+.battery-chip svg {
+    width: 18px; /* Оптимальный размер иконки */
+    height: 18px;
+    stroke: var(--icon-green); /* Фирменный зеленый цвет */
+    stroke-width: 2;
+}
     </style>
 </head>
 <body>
