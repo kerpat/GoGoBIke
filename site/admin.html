@@ -174,6 +174,7 @@
         <section id="bookings-section" class="admin-section hidden">
           <div class="section-header">
             <h2>Активные бронирования</h2>
+            <button type="button" id="setup-booking-cost-btn" class="btn btn-secondary">Настроить стоимость</button>
           </div>
           <table id="bookings-table" class="admin-table table-wide-actions">
             <thead>
@@ -1043,8 +1044,30 @@
       </div>
     </div>
   </div>
+</div>
 
+<!-- Модальное окно настройки стоимости бронирования -->
+<div id="booking-cost-modal" class="overlay hidden">
+  <div class="modal" style="max-width: 420px;">
+    <div class="modal-header">
+      <h3>Стоимость бронирования</h3>
+      <button id="booking-cost-cancel-btn" class="close-btn">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="booking-cost-form">
+        <div class="form-group">
+          <label for="booking-cost-input">Цена за 2 часа брони (₽)</label>
+          <input type="number" id="booking-cost-input" class="modal-form-input" placeholder="Например: 100" required>
+          <p class="form-hint" style="font-size: 0.8rem; color: #6b6b6b; margin-top: 5px;">Эта сумма будет списана с клиента и зачислена на его внутренний баланс. Если установить 0, бронирование будет бесплатным.</p>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" id="booking-cost-save-btn" class="btn btn-primary">Сохранить</button>
+    </div>
   </div>
+</div>
+
 </body>
 
 </html>

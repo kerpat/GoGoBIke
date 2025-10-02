@@ -103,6 +103,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const assignBatteriesCancelBtn = document.getElementById('assign-batteries-cancel-btn');
     const assignBatteriesSubmitBtn = document.getElementById('assign-batteries-submit-btn');
 
+    // Booking Cost Setup elements (НОВЫЙ БЛОК)
+    const setupBookingCostBtn = document.getElementById('setup-booking-cost-btn');
+    const bookingCostModal = document.getElementById('booking-cost-modal');
+    const bookingCostCancelBtn = document.getElementById('booking-cost-cancel-btn');
+    const bookingCostSaveBtn = document.getElementById('booking-cost-save-btn');
+    const bookingCostInput = document.getElementById('booking-cost-input');
+
     // Отладка: проверяем что все элементы найдены
     console.log('DOM элементы для АКБ:');
     console.log('assignBatteriesModal:', assignBatteriesModal);
@@ -3312,5 +3319,89 @@ document.addEventListener('DOMContentLoaded', () => {
     clientViewTariffDetailModal?.addEventListener('click', (e) => {
         if (e.target === clientViewTariffDetailModal) clientViewTariffDetailModal.classList.add('hidden');
     });
+
+    // --- НОВЫЙ БЛОК: Логика настройки стоимости бронирования ---
+
+    // Загрузка текущей стоимости бронирования
+    async function loadBookingCost() {
+        try {
+            const { data, error } = await supabase
+                .from('settings')
+                .select('value')
+                .eq('key', 'booking_cost_rub')
+                .single();
+
+            if (error && error.code !== 'PGRST116') throw error;
+
+            const currentCost = data ? parseFloat(data.value) : 0;
+            if (bookingCostInput) {
+                bookingCostInput.value = currentCost;
+            }
+        } catch (err) {
+            console.error('Ошибка загрузки стоимости бронирования:', err);
+            if (bookingCostInput) {
+                bookingCostInput.value = 0;
+            }
+        }
+    }
+
+    // Сохранение стоимости бронирования
+    async function saveBookingCost() {
+        const cost = parseFloat(bookingCostInput.value);
+        if (isNaN(cost) || cost < 0) {
+            alert('Пожалуйста, введите корректную стоимость (неотрицательное число).');
+            return;
+        }
+
+        toggleButtonLoading(bookingCostSaveBtn, true, 'Сохранить', 'Сохранение...');
+
+        try {
+            const { error } = await supabase
+                .from('settings')
+                .upsert({
+                    key: 'booking_cost_rub',
+                    value: cost.toString(),
+                    updated_at: new Date().toISOString()
+                }, {
+                    onConflict: 'key'
+                });
+
+            if (error) throw error;
+
+            alert('Стоимость бронирования успешно сохранена.');
+            bookingCostModal.classList.add('hidden');
+
+        } catch (err) {
+            alert('Ошибка сохранения стоимости бронирования: ' + err.message);
+        } finally {
+            toggleButtonLoading(bookingCostSaveBtn, false, 'Сохранить', 'Сохранение...');
+        }
+    }
+
+    // Обработчики событий для модального окна стоимости бронирования
+    if (setupBookingCostBtn) {
+        setupBookingCostBtn.addEventListener('click', () => {
+            loadBookingCost();
+            bookingCostModal.classList.remove('hidden');
+        });
+    }
+
+    if (bookingCostCancelBtn) {
+        bookingCostCancelBtn.addEventListener('click', () => {
+            bookingCostModal.classList.add('hidden');
+        });
+    }
+
+    if (bookingCostModal) {
+        bookingCostModal.addEventListener('click', (e) => {
+            if (e.target === bookingCostModal) {
+                bookingCostModal.classList.add('hidden');
+            }
+        });
+    }
+
+    if (bookingCostSaveBtn) {
+        bookingCostSaveBtn.addEventListener('click', saveBookingCost);
+    }
 
 });

@@ -363,8 +363,12 @@
         <p style="color: var(--text-secondary); margin: 20px 0; line-height: 1.5;">
             Вы забронируете электровелосипед на <strong>2 часа</strong>. Пожалуйста, подъедьте к точке выдачи до истечения этого времени.
         </p>
-        <p class="disclaimer-text">Бронирование бесплатное. Если вы не заберете велосипед, бронь автоматически отменится.</p>
-        <button class="btn btn-primary" id="confirm-booking-btn">Забронировать</button>
+        <div id="booking-cost-info" style="background-color: var(--card-bg); padding: 15px; border-radius: 12px; margin: 15px 0;">
+            <p style="margin: 0; font-weight: 500;">Стоимость бронирования: <span id="booking-cost-amount" style="color: var(--primary-color); font-weight: 600;">Загрузка...</span></p>
+            <p style="margin: 5px 0 0 0; font-size: 0.9rem; color: var(--text-secondary);">Сумма будет списана с вашего баланса</p>
+        </div>
+        <p class="disclaimer-text">Если вы не заберете велосипед, бронь автоматически отменится, но оплата останется на вашем балансе.</p>
+        <button class="btn btn-primary" id="confirm-booking-btn">Забронировать и оплатить</button>
     </div>
 </div>
 <div id="tariff-modal" class="modal-overlay hidden">
@@ -700,29 +704,102 @@
     // +++ НОВАЯ ФУНКЦИЯ ДЛЯ СОЗДАНИЯ БРОНИ +++
     const processBooking = async () => {
         const confirmBtn = document.getElementById('confirm-booking-btn');
-        toggleButtonLoading(confirmBtn, true, 'Забронировать', 'Обработка...');
+        toggleButtonLoading(confirmBtn, true, 'Забронировать и оплатить', 'Обработка...');
 
         const userId = localStorage.getItem('userId');
         if (!userId) {
             alert('Ошибка авторизации.');
-            toggleButtonLoading(confirmBtn, false, 'Забронировать', 'Обработка...');
+            toggleButtonLoading(confirmBtn, false, 'Забронировать и оплатить', 'Обработка...');
             return;
         }
 
         try {
-            const expires_at = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(); // +2 часа
-            const { error } = await supabase.from('bookings').insert({ user_id: userId, expires_at: expires_at });
+            // Сначала получаем стоимость бронирования из настроек
+            const { data: settings, error: settingsError } = await supabase
+                .from('settings')
+                .select('value')
+                .eq('key', 'booking_cost_rub')
+                .single();
 
-            if (error) throw error;
+            if (settingsError && settingsError.code !== 'PGRST116') throw settingsError;
 
-            document.getElementById('confirm-booking-modal').classList.add('hidden');
-            showToast(bookingSuccessToast); // Используем ваш существующий тост
-            loadUserData(); // Перезагружаем данные, чтобы отобразить экран брони
+            const bookingCost = settings ? parseFloat(settings.value) : 0;
+
+            if (bookingCost <= 0) {
+                alert('Стоимость бронирования не настроена. Обратитесь в поддержку.');
+                toggleButtonLoading(confirmBtn, false, 'Забронировать и оплатить', 'Обработка...');
+                return;
+            }
+
+            // Проверяем баланс клиента
+            const { data: client, error: clientError } = await supabase
+                .from('clients')
+                .select('balance_rub')
+                .eq('id', userId)
+                .single();
+
+            if (clientError) throw new Error('Не удалось получить данные клиента');
+
+            const hasEnoughBalance = client.balance_rub >= bookingCost;
+
+            if (hasEnoughBalance) {
+                // Списываем с баланса и создаем бронь
+                const { error: balanceError } = await supabase.rpc('add_to_balance', {
+                    client_id_to_update: userId,
+                    amount_to_add: -bookingCost
+                });
+                if (balanceError) throw new Error(`Ошибка списания баланса: ${balanceError.message}`);
+
+                const expires_at = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(); // +2 часа
+                const { error: bookingError } = await supabase.from('bookings').insert({
+                    user_id: userId,
+                    expires_at: expires_at,
+                    cost_rub: bookingCost
+                });
+
+                if (bookingError) throw bookingError;
+
+                // Логируем платеж
+                await supabase.from('payments').insert({
+                    client_id: userId,
+                    amount_rub: bookingCost,
+                    status: 'succeeded',
+                    payment_type: 'booking',
+                    payment_method_title: 'Списано с баланса',
+                    description: 'Оплата бронирования велосипеда'
+                });
+
+                document.getElementById('confirm-booking-modal').classList.add('hidden');
+                showToast(bookingSuccessToast); // Используем ваш существующий тост
+                loadUserData(); // Перезагружаем данные, чтобы отобразить экран брони
+
+            } else {
+                // Баланса недостаточно - оплата картой
+                const response = await fetch('/api/payments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'create-payment',
+                        userId: userId,
+                        amount: bookingCost,
+                        type: 'booking'
+                    })
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Неизвестная ошибка');
+
+                if (data.confirmation_url) {
+                    window.location.href = data.confirmation_url;
+                } else {
+                    throw new Error('Не удалось получить ссылку на оплату.');
+                }
+            }
 
         } catch (err) {
             alert('Не удалось создать бронь: ' + err.message);
         } finally {
-            toggleButtonLoading(confirmBtn, false, 'Забронировать', 'Обработка...');
+            toggleButtonLoading(confirmBtn, false, 'Забронировать и оплатить', 'Обработка...');
         }
     };
 
@@ -1258,6 +1335,31 @@ function initializeMainScreenEventListeners() {
         // Элементы для модального окна бронирования
         const confirmBookingModal = document.getElementById('confirm-booking-modal');
         const confirmBookingCloseBtn = document.getElementById('confirm-booking-close-btn');
+
+        // +++ НОВАЯ ФУНКЦИЯ ДЛЯ ЗАГРУЗКИ СТОИМОСТИ БРОНИРОВАНИЯ +++
+        async function loadBookingCost() {
+            try {
+                const { data: settings, error } = await supabase
+                    .from('settings')
+                    .select('value')
+                    .eq('key', 'booking_cost_rub')
+                    .single();
+
+                if (error && error.code !== 'PGRST116') throw error;
+
+                const cost = settings ? parseFloat(settings.value) : 0;
+                const costElement = document.getElementById('booking-cost-amount');
+                if (costElement) {
+                    costElement.textContent = cost > 0 ? `${cost} ₽` : 'Не настроена';
+                }
+            } catch (err) {
+                console.error('Ошибка загрузки стоимости бронирования:', err);
+                const costElement = document.getElementById('booking-cost-amount');
+                if (costElement) {
+                    costElement.textContent = 'Ошибка загрузки';
+                }
+            }
+        }
 
         // Элементы для работы с GoGoBike тарифами
         const tariffModal = document.getElementById('tariff-modal');
@@ -2171,8 +2273,11 @@ function initializeMainScreenEventListeners() {
 
             if (bookingBtn) {
                 e.preventDefault();
-                const modal = document.getElementById('confirm-booking-modal');
-                if (modal) modal.classList.remove('hidden');
+                // Загружаем стоимость бронирования перед открытием модального окна
+                loadBookingCost().then(() => {
+                    const modal = document.getElementById('confirm-booking-modal');
+                    if (modal) modal.classList.remove('hidden');
+                });
                 return;
             }
 
