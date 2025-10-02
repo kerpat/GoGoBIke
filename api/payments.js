@@ -179,29 +179,29 @@ async function handleCreatePayment(body) {
     const userBalance = clientData.balance_rub || 0;
     // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
 
-    // --- НАЧАЛО ИЗМЕНЕНИЙ ---
+    // --- НАЧАЛО НОВОГО КОДА (ВСТАВИТЬ СЮДА) ---
+    let paymentMetadata = { userId, bikeCode, rentalId, days }; // Базовые метаданные
 
-    if (type === 'renewal') { // <-- ЛОГИКА ДЛЯ ПРОДЛЕНИЯ
-        successRedirectUrl = 'https://go-go-b-ike.vercel.app/?rental_success=true'; // Возвращаемся на главный экран
-        const renewalCost = Number.parseFloat(amountFromClient);
+    if (type === 'renewal') {
+        paymentMetadata.payment_type = 'renewal'; // Явно указываем тип
+        successRedirectUrl = 'https://go-go-b-ike.vercel.app/?rental_success=true';
         description = `Продление аренды`;
+        const renewalCost = Number.parseFloat(amountFromClient);
 
         if (userBalance >= renewalCost) {
-            // Этот случай обрабатывается на клиенте (в processExtension), но на всякий случай добавим проверку
             throw new Error('Balance is sufficient. Use charge-from-balance endpoint.');
         } else if (userBalance > 0) {
-            // Частичная оплата: остаток с карты, всё что есть - с баланса
             amount = renewalCost - userBalance;
             amountToDebitFromBalance = userBalance;
         } else {
-            // Полная оплата с карты
             amount = renewalCost;
         }
-
-    } else if (tariffId) { // <-- ЛОГИКА ДЛЯ НОВОЙ АРЕНДЫ
+    } else if (tariffId) {
+        paymentMetadata.payment_type = 'rental'; // Явно указываем тип
+        paymentMetadata.tariffId = tariffId;
         successRedirectUrl = 'https://go-go-b-ike.vercel.app/?rental_success=true';
-        const tariffCost = Number.parseFloat(amountFromClient);
         description = `Аренда велосипеда`;
+        const tariffCost = Number.parseFloat(amountFromClient);
 
         if (userBalance >= tariffCost) {
             throw new Error('Balance is sufficient. Use charge-from-balance endpoint.');
@@ -211,7 +211,8 @@ async function handleCreatePayment(body) {
         } else {
             amount = tariffCost;
         }
-    } else if (amountFromClient) { // <-- ЭТО ПОПОЛНЕНИЕ
+    } else if (amountFromClient) {
+        paymentMetadata.payment_type = 'top-up'; // Явно указываем тип
         successRedirectUrl = 'https://go-go-b-ike.vercel.app/?topup_success=true';
         description = 'Пополнение баланса GoGoBike';
         amount = Number.parseFloat(amountFromClient);
@@ -219,9 +220,11 @@ async function handleCreatePayment(body) {
         throw new Error('Invalid request: amount or tariffId/type is missing.');
     }
 
-    // --- КОНЕЦ ИЗМЕНЕНИЙ ---
+    if (!Number.isFinite(amount) || amount <= 0) {
+        throw new Error('Invalid final amount for payment.');
+    }
 
-    if (!Number.isFinite(amount) || amount <= 0) throw new Error('Invalid final amount for payment.');
+    paymentMetadata.debit_from_balance = amountToDebitFromBalance;
 
     const normalizedPhone = normalizePhone(clientData.phone);
     if (!normalizedPhone) throw new Error(`Client ${userId} has no phone number for receipts.`);
@@ -231,12 +234,7 @@ async function handleCreatePayment(body) {
         amount: { value: amount.toFixed(2), currency: 'RUB' },
         capture: true,
         description,
-        metadata: {
-            userId, tariffId, bikeCode,
-            payment_type: type || (tariffId ? 'rental' : 'top-up'),
-            rentalId, days,
-            debit_from_balance: amountToDebitFromBalance
-        },
+        metadata: paymentMetadata, // <--- Используем новые метаданные
         save_payment_method: true,
         receipt: {
             customer: { phone: normalizedPhone },

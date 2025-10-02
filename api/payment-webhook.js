@@ -55,8 +55,8 @@ async function processSucceededPayment(notification) {
         return;
     }
 
-    // --- НАЧАЛО ИСПРАВЛЕНИЯ: ДОБАВЛЕН БЛОК ДЛЯ ПРОДЛЕНИЯ АРЕНДЫ ---
-    if (payment_type === 'renewal') {
+    // Блок продления, он уже правильный
+    else if (payment_type === 'renewal') {
         console.log(`[ПРОДЛЕНИЕ] Обработка для userId: ${userId}, rentalId: ${rentalId}`);
         if (!rentalId || !days) {
             throw new Error(`Webhook: продление не удалось, отсутствуют rentalId или days в метаданных.`);
@@ -119,10 +119,9 @@ async function processSucceededPayment(notification) {
         console.log(`[ПРОДЛЕНИЕ] Успешно продлена аренда #${rentalId}`);
         return; // Важно: завершаем выполнение здесь
     }
-    // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
 
-
-    if (tariffId) { // Логика для НАЧАЛА новой аренды
+    // ЗАМЕНИТЬ `if (tariffId)` НА `else if (payment_type === 'rental')`
+    else if (payment_type === 'rental') {
         console.log(`[АРЕНДА] Обработка для userId: ${userId}`);
         // ... (ваш существующий код для создания аренды остается без изменений) ...
         const amountToDebit = Number.parseFloat(debit_from_balance) || 0;
@@ -152,7 +151,8 @@ async function processSucceededPayment(notification) {
         return;
     }
 
-    if (payment_type === 'booking') { // Логика для бронирования
+    // ЗАМЕНИТЬ `if (payment_type === 'booking')` НА `else if`
+    else if (payment_type === 'booking') {
         console.log(`[БРОНЬ] Обработка для userId: ${userId}`);
         // ... (ваш существующий код для бронирования остается без изменений) ...
         const expires_at = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
@@ -166,29 +166,36 @@ async function processSucceededPayment(notification) {
         return;
     }
 
-    // --- ОБЫЧНОЕ ПОПОЛНЕНИЕ БАЛАНСА ---
-    console.log(`[ПОПОЛНЕНИЕ] Обработка для userId: ${userId} на сумму ${cardPaymentAmount} ₽`);
-    if (!userId) {
-        console.warn('Webhook: userId не найден, пополнение пропускается.');
-        return;
+    // ЗАМЕНИТЬ блок пополнения, чтобы он был явным `else if`
+    else if (payment_type === 'top-up') {
+        console.log(`[ПОПОЛНЕНИЕ] Обработка для userId: ${userId} на сумму ${cardPaymentAmount} ₽`);
+        if (!userId) {
+            console.warn('Webhook: userId не найден, пополнение пропускается.');
+            return;
+        }
+
+        const { error: balanceError } = await supabaseAdmin.rpc('add_to_balance', {
+            client_id_to_update: userId,
+            amount_to_add: cardPaymentAmount
+        });
+
+        if (balanceError) {
+            console.error(`[КРИТИКАЛ] НЕ УДАЛОСЬ ПОПОЛНИТЬ БАЛАНС для ${userId}:`, balanceError.message);
+            throw new Error(`Failed to credit balance for client ${userId}`);
+        }
+
+        await supabaseAdmin.from('payments').insert({
+            client_id: userId, amount_rub: cardPaymentAmount,
+            status: 'succeeded', payment_type: 'top-up', yookassa_payment_id: yookassaPaymentId
+        });
+
+        console.log(`[ПОПОЛНЕНИЕ] Баланс для userId ${userId} успешно пополнен.`);
     }
 
-    const { error: balanceError } = await supabaseAdmin.rpc('add_to_balance', {
-        client_id_to_update: userId,
-        amount_to_add: cardPaymentAmount
-    });
-
-    if (balanceError) {
-        console.error(`[КРИТИКАЛ] НЕ УДАЛОСЬ ПОПОЛНИТЬ БАЛАНС для ${userId}:`, balanceError.message);
-        throw new Error(`Failed to credit balance for client ${userId}`);
+    // Добавьте это в конце на всякий случай
+    else {
+        console.warn(`[ПРЕДУПРЕЖДЕНИЕ] Неизвестный или отсутствующий payment_type: '${payment_type}'. Платёж проигнорирован.`);
     }
-
-    await supabaseAdmin.from('payments').insert({
-        client_id: userId, amount_rub: cardPaymentAmount,
-        status: 'succeeded', payment_type: 'top-up', yookassa_payment_id: yookassaPaymentId
-    });
-
-    console.log(`[ПОПОЛНЕНИЕ] Баланс для userId ${userId} успешно пополнен.`);
 }
 async function handler(req, res) {
     if (req.method !== 'POST') {
