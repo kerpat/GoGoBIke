@@ -2116,7 +2116,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .from('rentals')
                 .select('id, created_at, user_id, tariff_id, status, clients(name), tariffs(title)')
                 // ИЗМЕНЕНИЕ: Ищем новый статус для выбора АКБ
-                .in('status', ['pending_assignment', 'awaiting_battery_assignment', 'awaiting_contract_signing', 'pending_return'])
+                .in('status', ['pending_assignment', 'awaiting_battery_assignment', 'pending_return'])
                 .order('created_at', { ascending: true });
 
             if (error) throw error;
@@ -2270,6 +2270,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('СРАБОТАЛ ОБРАБОТЧИК КНОПКИ ВЫБРАТЬ АКБ!');
                 const rentalId = assignBatteriesBtn.dataset.rentalId;
                 console.log('Rental ID:', rentalId);
+
+                const searchInput = document.getElementById('battery-search-in-modal');
+                searchInput.value = ''; // Сбрасываем поиск при открытии
+
+                searchInput.addEventListener('input', () => {
+                    const query = searchInput.value.toLowerCase().trim();
+                    const batteryListContainer = document.getElementById('battery-select-list');
+                    batteryListContainer.querySelectorAll('label').forEach(label => {
+                        const batteryName = label.textContent.toLowerCase();
+                        if (batteryName.includes(query)) {
+                            label.style.display = 'block';
+                        } else {
+                            label.style.display = 'none';
+                        }
+                    });
+                });
 
                 console.log('Проверяем DOM элементы:');
                 console.log('assignBatteriesRentalIdInput:', assignBatteriesRentalIdInput);

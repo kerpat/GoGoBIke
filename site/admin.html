@@ -1005,6 +1005,10 @@
         <form id="assign-batteries-form">
           <input type="hidden" id="assign-batteries-rental-id">
           <p>Выберите один или несколько свободных аккумуляторов:</p>
+          <!-- ВОТ СЮДА ВСТАВЬ ПОИСК -->
+          <div class="form-group" style="margin-bottom: 15px;">
+            <input type="search" id="battery-search-in-modal" class="form-control" placeholder="Поиск по серийному номеру...">
+          </div>
           <div id="battery-select-list"
             style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px; padding: 10px;">
             <!-- Список АКБ будет загружен сюда через JS -->
