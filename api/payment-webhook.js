@@ -138,7 +138,10 @@ async function processSucceededPayment(notification) {
         const { data: tariffData } = await supabaseAdmin.from('tariffs').select('duration_days').eq('id', tariffId).single();
         const startDate = new Date();
         const endDate = new Date();
-        endDate.setDate(startDate.getDate() + (tariffData?.duration_days || 7));
+        // Определяем длительность: используем 'days' из метаданных, если они есть,
+        // иначе берем значение по умолчанию из тарифа.
+        const rentalDuration = days ? parseInt(days, 10) : (tariffData?.duration_days || 7);
+        endDate.setDate(startDate.getDate() + rentalDuration);
         const totalPaid = cardPaymentAmount + amountToDebit;
         const { data: newRental } = await supabaseAdmin.from('rentals').insert({ user_id: userId, bike_id: bikeId, tariff_id: tariffId, starts_at: startDate.toISOString(), current_period_ends_at: endDate.toISOString(), status: 'awaiting_battery_assignment', total_paid_rub: totalPaid }).select('id').single();
 
