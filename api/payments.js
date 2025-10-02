@@ -196,7 +196,7 @@ async function handleCreatePayment(body) {
         amount: { value: amount.toFixed(2), currency: 'RUB' },
         capture: true,
         description,
-        metadata: { userId, bikeCode, tariffId, type: body.type, rentalId: body.rentalId, days: body.days },
+        metadata: { userId, bikeCode, tariffId, payment_type: body.type, rentalId: body.rentalId, days: body.days },
         save_payment_method: true,
         receipt: {
             customer: { phone: normalizedPhone },

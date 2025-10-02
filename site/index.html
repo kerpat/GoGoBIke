@@ -718,12 +718,12 @@
             const { data: settings, error: settingsError } = await supabase
                 .from('app_settings')
                 .select('value')
-                .eq('key', 'booking_cost')
+                .eq('key', 'booking_cost_rub')
                 .single();
 
             if (settingsError && settingsError.code !== 'PGRST116') throw settingsError;
 
-            const bookingCost = settings?.value?.cost || 0;
+            const bookingCost = parseFloat(settings?.value) || 0;
 
             if (bookingCost > 0) {
                 // Платная бронь - ВСЕГДА через карту
