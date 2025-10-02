@@ -25,6 +25,8 @@ function parseRequestBody(body) {
 function getPaymentMethodFromYookassa(paymentObject) {
     const methodType = paymentObject.payment_method?.type;
     
+    console.log('[МЕТОД ОПЛАТЫ] payment_method:', JSON.stringify(paymentObject.payment_method));
+    
     switch(methodType) {
         case 'bank_card':
             return 'card';
@@ -33,6 +35,7 @@ function getPaymentMethodFromYookassa(paymentObject) {
         case 'yoo_money':
             return 'yoo_money';
         default:
+            console.warn('[МЕТОД ОПЛАТЫ] Неизвестный тип, используем card по умолчанию');
             return 'card'; // По умолчанию
     }
 }
