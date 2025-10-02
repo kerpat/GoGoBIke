@@ -32,10 +32,28 @@ async function processSucceededPayment(notification) {
     const yookassaPaymentId = payment.id;
     const supabaseAdmin = createSupabaseAdmin();
 
+    // --- НАЧАЛО ИСПРАВЛЕНИЯ ---
+    // Проверяем, был ли сохранен новый способ оплаты
     if (payment.payment_method?.saved && userId) {
         console.log(`[СОХРАНЕНИЕ МЕТОДА] для userId: ${userId}`);
-        await supabaseAdmin.from('clients').update({ yookassa_payment_method_id: payment.payment_method.id, autopay_enabled: true }).eq('id', userId);
+
+        // Формируем объект с деталями карты для сохранения в колонку `extra`
+        const paymentDetailsToSave = {
+            payment_method_details: {
+                type: payment.payment_method.type,
+                title: payment.payment_method.title,
+                card: payment.payment_method.card // Сохраняем всю информацию о карте (last4, card_type и т.д.)
+            }
+        };
+
+        // Обновляем запись клиента, добавляя ID способа оплаты И детали карты
+        await supabaseAdmin.from('clients').update({
+            yookassa_payment_method_id: payment.payment_method.id,
+            autopay_enabled: true,
+            extra: paymentDetailsToSave // <-- Вот ключевое добавление!
+        }).eq('id', userId);
     }
+    // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
 
     if (payment_type === 'save_card') {
         console.log('[ЗАВЕРШЕНИЕ] Платеж для привязки карты.');
