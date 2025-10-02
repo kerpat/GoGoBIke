@@ -162,54 +162,58 @@ async function handleChargeFromBalance({ userId, tariffId, bikeCode, amount, day
 }
 
 async function handleCreatePayment(body) {
-    const { userId, bikeCode, tariffId, amount: amountFromClient, type, rentalId, return_url } = body;
+    const { userId, tariffId, amount: amountFromClient, type, rentalId, return_url, bikeCode } = body;
     if (!userId) throw new Error('Client ID (userId) is required.');
 
     const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-    // 1. ПОЛУЧАЕМ ДАННЫЕ КЛИЕНТА И ТАРИФА ОДНОВРЕМЕННО
-    const [clientResult, tariffResult] = await Promise.all([
-        supabaseAdmin.from('clients').select('phone, balance_rub, yookassa_payment_method_id').eq('id', userId).single(),
-        tariffId ? supabaseAdmin.from('tariffs').select('price_rub').eq('id', tariffId).single() : Promise.resolve({ data: null, error: null })
-    ]);
+    const { data: clientData, error: clientError } = await supabaseAdmin.from('clients').select('phone, balance_rub, yookassa_payment_method_id').eq('id', userId).single();
+    if (clientError || !clientData) throw new Error(`Client not found.`);
 
-    if (clientResult.error || !clientResult.data) throw new Error(`Client not found.`);
-    if (tariffId && (tariffResult.error || !tariffResult.data)) throw new Error(`Tariff not found.`);
-
-    const clientData = clientResult.data;
-    const userBalance = clientData.balance_rub || 0;
-    const tariffCost = amountFromClient ? Number.parseFloat(amountFromClient) : (tariffResult.data ? tariffResult.data.price_rub : 3750.0);
-
-    // --- НАЧАЛО НОВОЙ ЛОГИКИ ---
-
-    // 2. ВЫЧИСЛЯЕМ, СКОЛЬКО СПИСАТЬ С КАРТЫ И СКОЛЬКО С БАЛАНСА
-    let amountToChargeCard = tariffCost;
+    let amount;
+    let description = 'Пополнение баланса GoGoBike';
     let amountToDebitFromBalance = 0;
 
-    if (userBalance > 0) {
+    // <<< НАЧАЛО КЛЮЧЕВЫХ ИЗМЕНЕНИЙ >>>
+
+    // Разделяем логику для АРЕНДЫ и для ПОПОЛНЕНИЯ
+    if (tariffId) {
+        // --- ЭТО СЦЕНАРИЙ АРЕНДЫ ---
+        const { data: tariffData, error: tariffError } = await supabaseAdmin.from('tariffs').select('price_rub').eq('id', tariffId).single();
+        if (tariffError || !tariffData) throw new Error('Tariff not found.');
+
+        const tariffCost = tariffData.price_rub;
+        const userBalance = clientData.balance_rub || 0;
+        description = `Аренда велосипеда по тарифу`;
+        if (bikeCode) description += ` #${bikeCode}`;
+
         if (userBalance >= tariffCost) {
-            // Этот случай должен обрабатываться через action: 'charge-from-balance',
-            // но на всякий случай вернем ошибку, чтобы фронтенд вызвал правильный метод.
+            // Если баланса достаточно, мы вообще не должны были сюда попасть.
+            // Фронтенд должен был вызвать `charge-from-balance`. Выбрасываем ошибку.
             throw new Error('Balance is sufficient. Use charge-from-balance endpoint.');
+        } else if (userBalance > 0) {
+            // Логика гибридной оплаты
+            amount = tariffCost - userBalance; // Сумма для списания с карты
+            amountToDebitFromBalance = userBalance; // Сумма, которую спишем с баланса через вебхук
         } else {
-            // ГИБРИДНЫЙ СЦЕНАРИЙ!
-            amountToChargeCard = tariffCost - userBalance; // 3750 - 750 = 3000
-            amountToDebitFromBalance = userBalance;         // 750
+            // Обычная оплата полной стоимости с карты
+            amount = tariffCost;
         }
+
+    } else {
+        // --- ЭТО СЦЕНАРИЙ ОБЫЧНОГО ПОПОЛНЕНИЯ ---
+        if (!amountFromClient || amountFromClient <= 0) {
+            throw new Error('Invalid amount specified for top-up.');
+        }
+        amount = Number.parseFloat(amountFromClient);
     }
-    // Если userBalance = 0, то amountToChargeCard останется равен tariffCost.
 
-    // --- КОНЕЦ НОВОЙ ЛОГИКИ ---
+    // <<< КОНЕЦ КЛЮЧЕВЫХ ИЗМЕНЕНИЙ >>>
 
-    const normalizedPhone = normalizePhone(clientData.phone);
-    if (!normalizedPhone) throw new Error(`Client ${userId} has no phone number for YooKassa receipts.`);
-
-    let amount = amountToChargeCard;
     if (!Number.isFinite(amount) || amount <= 0) {
-        throw new Error('Invalid amount specified.');
+        throw new Error('Invalid final amount for payment.');
     }
 
-    let description = 'Account top-up';
     if (bikeCode) description = `Bike rental payment #${bikeCode}`;
     if (body.type === 'renewal') description = `Продление аренды #${body.rentalId}`;
     const idempotenceKey = crypto.randomUUID();
@@ -218,7 +222,15 @@ async function handleCreatePayment(body) {
         amount: { value: amount.toFixed(2), currency: 'RUB' },
         capture: true,
         description,
-        metadata: { userId, bikeCode, tariffId, payment_type: body.type, rentalId: body.rentalId, days: body.days, debit_from_balance: amountToDebitFromBalance },
+        metadata: {
+            userId,
+            tariffId,
+            bikeCode,
+            payment_type: type || (tariffId ? 'rental' : 'top-up'), // Определяем тип
+            rentalId,
+            days: body.days,
+            debit_from_balance: amountToDebitFromBalance // Будет 0 для обычных пополнений
+        },
         save_payment_method: true,
         receipt: {
             customer: { phone: normalizedPhone },
