@@ -710,8 +710,14 @@ if (status === 'approved') {
                 table: 'rentals',
                 filter: `id=eq.${rental.id}`
             }, payload => {
-                // Если статус изменился на 'active', перезагружаем страницу
-                if (payload.new.status === 'active') {
+                const newStatus = payload.new.status;
+                // ИЗМЕНЕНИЕ: Реагируем на разные статусы
+                if (newStatus === 'awaiting_contract_signing') {
+                    // Админ выбрал АКБ, отправляем клиента на подписание!
+                    alert('Администратор подобрал для вас оборудование! Теперь необходимо подписать договор.');
+                    window.location.href = 'profile.html#notifications';
+                } else if (newStatus === 'active') {
+                    // Это сработает после того, как клиент подпишет договор
                     window.location.reload();
                 }
             })
@@ -719,8 +725,13 @@ if (status === 'approved') {
 
         // Отображаем нужный экран в зависимости от текущего статуса
         switch(rental.status) {
-            case 'awaiting_contract_signing': // Теперь это "Ожидание АКБ"
-                renderPendingBatteryView(mainContent);
+            case 'awaiting_battery_assignment': // <-- НОВЫЙ СТАТУС
+                renderPendingBatteryView(mainContent); // Показываем экран "Дождитесь..."
+                break;
+            case 'awaiting_contract_signing':
+                // Теперь этот статус снова означает "надо подписать"
+                // Можно показать специальное уведомление или сразу перенаправить
+                renderAwaitingContractView(rental, mainContent);
                 break;
             case 'active':
                 renderActiveRentalView(rental, mainContent);
@@ -732,8 +743,8 @@ if (status === 'approved') {
                 renderPendingReturnView(rental, mainContent);
                 break;
             default:
-                // Это случай для старого 'awaiting_contract_signing', если он где-то остался
-                renderAwaitingContractView(rental, mainContent);
+                renderDefaultView(mainContent);
+                initializeMainScreenEventListeners();
         }
         loadAvailableBikesCount(client.city);
     } else {

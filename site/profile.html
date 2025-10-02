@@ -954,7 +954,10 @@
                 ? `${passport.series || ''} ${passport.number || ''}`.trim()
                 : 'N/A';
 
-            const batteryNumbers = Array.isArray(bike?.battery_numbers) ? bike.battery_numbers.join(', ') : (bike?.battery_numbers || 'N/A');
+            // ИЗМЕНЕНИЕ: Получаем номера АКБ из новой связанной таблицы
+            const batteryNumbers = rental.rental_batteries && rental.rental_batteries.length > 0
+                ? rental.rental_batteries.map(rb => rb.batteries.serial_number).join(', ')
+                : 'N/A';
 
             return `
                 <div style="text-align: center; font-weight: bold; font-size: 1.2em; margin-bottom: 20px;">

@@ -2110,8 +2110,8 @@ clientsTableBody.addEventListener('click', async (e) => {
             const { data, error } = await supabase
                 .from('rentals')
                 .select('id, created_at, user_id, tariff_id, status, clients(name), tariffs(title)')
-                // ИЗМЕНЕНИЕ: Добавляем awaiting_contract_signing для отслеживания заявок на АКБ
-                .in('status', ['pending_assignment', 'awaiting_contract_signing', 'pending_return'])
+                // ИЗМЕНЕНИЕ: Ищем новый статус для выбора АКБ
+                .in('status', ['pending_assignment', 'awaiting_battery_assignment', 'pending_return'])
                 .order('created_at', { ascending: true });
 
             if (error) throw error;
@@ -2129,7 +2129,7 @@ clientsTableBody.addEventListener('click', async (e) => {
                 // ИЗМЕНЕНИЕ: Разная логика для разных статусов
                 if (assignment.status === 'pending_return') {
                     actionButton = `<button class="btn btn-primary process-return-btn" data-rental-id="${assignment.id}">Принять</button>`;
-                } else if (assignment.status === 'awaiting_contract_signing') {
+                } else if (assignment.status === 'awaiting_battery_assignment') { // <-- ВОТ НОВЫЙ СТАТУС
                     actionButton = `<button class="btn btn-primary assign-batteries-btn" data-rental-id="${assignment.id}">Выбрать АКБ</button>`;
                 } else { // 'pending_assignment'
                     actionButton = `<button class="btn btn-primary assign-bike-btn" data-rental-id="${assignment.id}">Привязать вел.</button>`;
@@ -2587,14 +2587,15 @@ clientsTableBody.addEventListener('click', async (e) => {
                         const { error: linkError } = await supabase.from('rental_batteries').insert(rentalBatteryRecords);
                         if (linkError) throw new Error('Ошибка привязки АКБ к аренде: ' + linkError.message);
         
-                        // Шаг 3: Обновить статус самой аренды на 'active'
+                        // Шаг 3: Обновить статус самой аренды на 'awaiting_contract_signing'
+                        // <-- ВОТ ГЛАВНОЕ ИЗМЕНЕНИЕ
                         const { error: rentalUpdateError } = await supabase
                             .from('rentals')
-                            .update({ status: 'active' })
+                            .update({ status: 'awaiting_contract_signing' }) // НЕ 'active', а 'awaiting_contract_signing'
                             .eq('id', rentalId);
-                        if (rentalUpdateError) throw new Error('Ошибка активации аренды: ' + rentalUpdateError.message);
-        
-                        alert('Аренда успешно активирована!');
+                        if (rentalUpdateError) throw new Error('Ошибка перевода аренды на подписание: ' + rentalUpdateError.message);
+            
+                        alert('Аккумуляторы назначены! Клиент получил уведомление о необходимости подписать договор.');
                         assignBatteriesModal.classList.add('hidden');
                         loadAssignments(); // Обновляем список заявок
         
