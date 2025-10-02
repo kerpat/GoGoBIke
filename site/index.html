@@ -20,18 +20,20 @@
     text-align: center;
 }
 
-/* === СТИЛИ ДЛЯ ОДНОСТРОЧНОГО СПИСКА АКБ === */
+/* === СТИЛИ ДЛЯ ОДНОСТРОЧНОГО СПИСКА АКБ (в виде карточки) === */
 .battery-info-line {
     text-align: center;
     font-size: 0.95rem;
-    color: var(--text-secondary);
-    margin: 10px 0 20px 0; /* Отступы сверху и снизу */
-    padding: 0 15px; /* Боковые отступы, чтобы текст не прилипал к краям */
-    line-height: 1.5; /* Для читаемости, если список перенесется на 2 строки */
+    color: var(--dark-green); /* Делаем текст номера тоже темным для читаемости */
+    margin: 10px 0 20px 0; /* Сохраняем внешние отступы */
+    padding: 12px 15px;      /* Добавляем внутренние отступы для объема */
+    line-height: 1.5;
+    background-color: var(--card-bg); /* <-- ДОБАВЛЯЕМ ФОН КАК У КАРТОЧКИ */
+    border-radius: 16px;             /* <-- ДОБАВЛЯЕМ СКРУГЛЕНИЕ */
 }
 
 .battery-info-line strong {
-    color: var(--dark-green); /* Делаем лейбл "АКБ:" чуть темнее */
+    color: var(--dark-green);
     font-weight: 600;
 }
     </style>
