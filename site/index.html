@@ -473,7 +473,7 @@
     }
 
     // Рендерит экран активной аренды
-    const renderActiveRentalView = (rental, container) => {
+    const renderActiveRentalView = async (rental, container) => {
         const endsDate = new Date(rental.current_period_ends_at);
         const daysLeft = Math.ceil((endsDate - new Date()) / (1000 * 60 * 60 * 24));
         const durationDays = rental.tariffs?.duration_days || 7;
@@ -486,6 +486,18 @@
         container.innerHTML = `
             <div class="bike-image-wrapper">
                 <img src="bike-delivery.png" alt="Rented Electric bike" class="bike-image" width="1536" height="1024" decoding="async" fetchpriority="high">
+            </div>
+
+            <!-- НОВЫЙ БЛОК С АКБ -->
+            <div class="rental-equipment-info">
+                <div class="equipment-label">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                    </svg>
+                    <span>В комплекте:</span>
+                </div>
+                <div class="battery-chips" id="rental-batteries-list"></div>
             </div>
 
             <div class="progress-section">
@@ -526,6 +538,35 @@
                 </div>
             </div>
         `;
+
+        // ЗАГРУЖАЕМ И ОТОБРАЖАЕМ АККУМУЛЯТОРЫ
+        try {
+            const { data: batteries, error } = await supabase
+                .from('rental_batteries')
+                .select('batteries(serial_number)')
+                .eq('rental_id', rental.id);
+
+            const batteryList = document.getElementById('rental-batteries-list');
+            if (batteries && batteries.length > 0 && batteryList) {
+                batteries.forEach(rb => {
+                    const chip = document.createElement('div');
+                    chip.className = 'battery-chip';
+                    chip.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                        </svg>
+                        ${rb.batteries.serial_number}
+                    `;
+                    batteryList.appendChild(chip);
+                });
+            } else if (batteryList) {
+                // Если АКБ нет, показываем placeholder
+                batteryList.innerHTML = '<span style="color: #7a9a95; font-size: 0.85rem;">Информация недоступна</span>';
+            }
+        } catch (err) {
+            console.error('Не удалось загрузить список аккумуляторов:', err);
+        }
 
         // Используем делегирование событий, чтобы не навешивать слушатель каждый раз
     };
@@ -751,7 +792,7 @@ if (status === 'approved') {
                 renderAwaitingContractView(rental, mainContent);
                 break;
             case 'active':
-                renderActiveRentalView(rental, mainContent);
+                await renderActiveRentalView(rental, mainContent);
                 break;
             case 'overdue':
                 renderOverdueRentalView(rental, mainContent);
