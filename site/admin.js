@@ -1144,10 +1144,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!batteriesTableBody) return;
         batteriesTableBody.innerHTML = '<tr><td colspan="4">Загрузка...</td></tr>';
         try {
-            const response = await authedFetch('/api/admin', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'get-batteries' })
+            const response = await authedFetch('/api/batteries', {
+                method: 'GET'
             });
             const result = await response.json();
             if (!response.ok) throw new Error(result.error || 'Ошибка загрузки');
@@ -1217,12 +1215,12 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             try {
-                const action = id ? 'update-battery' : 'create-battery';
-                const body = id ? { ...batteryData, id } : batteryData;
-                const response = await authedFetch('/api/admin', {
-                    method: 'POST',
+                const method = id ? 'PUT' : 'POST';
+                const endpoint = id ? `/api/batteries?id=${id}` : '/api/batteries';
+                const response = await authedFetch(endpoint, {
+                    method: method,
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action, ...body })
+                    body: JSON.stringify(batteryData)
                 });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || 'Ошибка сохранения');
@@ -1241,14 +1239,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (editBtn) {
                 const id = editBtn.dataset.id;
                 try {
-                    const response = await authedFetch('/api/admin', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'get-batteries' })
+                    const response = await authedFetch('/api/batteries', {
+                        method: 'GET'
                     });
                     const result = await response.json();
                     if (!response.ok) throw new Error(result.error || 'Ошибка загрузки');
-                    const battery = result.batteries.find(b => b.id === id);
+                    const battery = result.batteries.find(b => b.id == id);
                     if (battery) {
                         showBatteryForm(battery);
                     }
@@ -1263,10 +1259,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const id = deleteBtn.dataset.id;
                 if (confirm(`Вы уверены, что хотите удалить аккумулятор?`)) {
                     try {
-                        const response = await authedFetch('/api/admin', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ action: 'delete-battery', id })
+                        const response = await authedFetch(`/api/batteries?id=${id}`, {
+                            method: 'DELETE'
                         });
                         const result = await response.json();
                         if (!response.ok) throw new Error(result.error || 'Ошибка удаления');
