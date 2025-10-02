@@ -172,6 +172,78 @@ async function handleAssignBattery({ rental_id, battery_id }) {
     }
 }
 
+// Battery management functions
+async function handleGetBatteries() {
+    const supabaseAdmin = createSupabaseAdmin();
+    const { data, error } = await supabaseAdmin
+        .from('batteries')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        throw new Error('Failed to fetch batteries: ' + error.message);
+    }
+
+    return { status: 200, body: { batteries: data } };
+}
+
+async function handleCreateBattery({ model, capacity, power, description }) {
+    if (!model || !capacity || !power) {
+        return { status: 400, body: { error: 'Model, capacity, and power are required.' } };
+    }
+
+    const supabaseAdmin = createSupabaseAdmin();
+    const { data, error } = await supabaseAdmin
+        .from('batteries')
+        .insert([{ model, capacity, power, description }])
+        .select()
+        .single();
+
+    if (error) {
+        throw new Error('Failed to create battery: ' + error.message);
+    }
+
+    return { status: 201, body: { battery: data } };
+}
+
+async function handleUpdateBattery({ id, model, capacity, power, description }) {
+    if (!id) {
+        return { status: 400, body: { error: 'ID is required.' } };
+    }
+
+    const supabaseAdmin = createSupabaseAdmin();
+    const { data, error } = await supabaseAdmin
+        .from('batteries')
+        .update({ model, capacity, power, description, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single();
+
+    if (error) {
+        throw new Error('Failed to update battery: ' + error.message);
+    }
+
+    return { status: 200, body: { battery: data } };
+}
+
+async function handleDeleteBattery({ id }) {
+    if (!id) {
+        return { status: 400, body: { error: 'ID is required.' } };
+    }
+
+    const supabaseAdmin = createSupabaseAdmin();
+    const { error } = await supabaseAdmin
+        .from('batteries')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        throw new Error('Failed to delete battery: ' + error.message);
+    }
+
+    return { status: 200, body: { message: 'Battery deleted successfully.' } };
+}
+
 async function handleAssignBike({ rental_id, bike_id }) {
     console.log("--- ЗАПУСК handleAssignBike (НАДЕЖНАЯ ВЕРСИЯ) ---");
 
@@ -723,6 +795,18 @@ async function handler(req, res) {
                 break;
             case 'assign-bike':
                 result = await handleAssignBike(body);
+                break;
+            case 'get-batteries':
+                result = await handleGetBatteries();
+                break;
+            case 'create-battery':
+                result = await handleCreateBattery(body);
+                break;
+            case 'update-battery':
+                result = await handleUpdateBattery(body);
+                break;
+            case 'delete-battery':
+                result = await handleDeleteBattery(body);
                 break;
             case 'create-invoice':
                 result = await handleCreateInvoice(body);
