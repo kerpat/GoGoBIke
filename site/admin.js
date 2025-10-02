@@ -1216,7 +1216,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 const method = id ? 'PUT' : 'POST';
-                const endpoint = id ? `/api/batteries?id=${id}` : '/api/batteries';
+                const endpoint = id ? `/api/batteries/${id}` : '/api/batteries';
                 const response = await authedFetch(endpoint, {
                     method: method,
                     headers: { 'Content-Type': 'application/json' },
@@ -1259,7 +1259,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const id = deleteBtn.dataset.id;
                 if (confirm(`Вы уверены, что хотите удалить аккумулятор?`)) {
                     try {
-                        const response = await authedFetch(`/api/batteries?id=${id}`, {
+                        const response = await authedFetch(`/api/batteries/${id}`, {
                             method: 'DELETE'
                         });
                         const result = await response.json();
