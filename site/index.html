@@ -1814,7 +1814,6 @@ function initializeMainScreenEventListeners() {
                 const newEndDate = new Date(currentRentalForExtension.current_period_ends_at);
                 newEndDate.setDate(newEndDate.getDate() + ext.days);
 
-                // Сначала проверяем баланс клиента
                 const { data: client, error: clientError } = await supabase
                     .from('clients')
                     .select('balance_rub')
@@ -1823,17 +1822,16 @@ function initializeMainScreenEventListeners() {
 
                 if (clientError) throw new Error('Не удалось получить данные клиента');
 
-                const hasEnoughBalance = client.balance_rub >= ext.cost;
+                const hasEnoughBalance = (client.balance_rub || 0) >= ext.cost;
 
                 if (hasEnoughBalance) {
-                    // Списываем с баланса
+                    // 1. Списание с баланса, если его достаточно
                     const { error: balanceError } = await supabase.rpc('add_to_balance', {
                         client_id_to_update: userId,
                         amount_to_add: -ext.cost
                     });
                     if (balanceError) throw new Error(`Ошибка списания баланса: ${balanceError.message}`);
 
-                    // 2. Update rental
                     const { error: rentalError } = await supabase
                         .from('rentals')
                         .update({
@@ -1843,7 +1841,6 @@ function initializeMainScreenEventListeners() {
                         .eq('id', currentRentalForExtension.id);
                     if (rentalError) throw new Error(`Ошибка обновления аренды: ${rentalError.message}`);
 
-                    // 3. Log payment
                     await supabase.from('payments').insert({
                         client_id: userId,
                         rental_id: currentRentalForExtension.id,
@@ -1854,24 +1851,41 @@ function initializeMainScreenEventListeners() {
                         description: 'Продление аренды'
                     });
 
-                    // 4. Update UI
-                    showToast(rentSuccessToast);
-                    await loadUserData();
+                    alert('Аренда успешно продлена!');
+                    window.location.reload(); // Перезагружаем страницу, чтобы обновить данные
+
                 } else {
-                    // Баланса недостаточно - оплата картой
+                    // 2. Оплата картой (полная или частичная), если баланса не хватает
                     const response = await fetch('/api/payments', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'create-payment', userId: userId, amount: ext.cost, type: 'renewal', rentalId: currentRentalForExtension.id, days: ext.days })
+                        body: JSON.stringify({
+                            action: 'create-payment',
+                            userId: userId,
+                            amount: ext.cost,
+                            type: 'renewal',
+                            rentalId: currentRentalForExtension.id,
+                            days: ext.days
+                        })
                     });
 
                     const data = await response.json();
                     if (!response.ok) throw new Error(data.error || 'Неизвестная ошибка');
 
+                    // --- КЛЮЧЕВЫЕ ИЗМЕНЕНИЯ ЗДЕСЬ ---
                     if (data.confirmation_url) {
+                        // Сценарий 1: Карты нет, отправляем на оплату
                         window.location.href = data.confirmation_url;
+                    } else if (data.status === 'succeeded' || data.status === 'pending') {
+                        // Сценарий 2: Карта есть, автоплатеж запущен. Просто ждем вебхук.
+                        alert('Продление обрабатывается. Страница сейчас обновится.');
+                        // Даем вебхуку пару секунд на обработку и перезагружаем страницу
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 3000);
                     } else {
-                        throw new Error('Не удалось получить ссылку на оплату.');
+                        // Сценарий 3: Что-то пошло не так.
+                        throw new Error('Не удалось получить ссылку на оплату или подтверждение платежа.');
                     }
                 }
 
