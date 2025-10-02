@@ -270,10 +270,10 @@ body.tg-webapp .app-main h2,
 }
 
 .btn-danger {
-  background-color: #fff1f2; /* Светло-красный фон */
-  color: #e53e3e; /* Красный текст */
-  font-size: 1rem;
-  border: 2px solid #fecdd3; /* Светло-красная рамка */
+   background-color: var(--white); /* Белый фон */
+   color: #e53e3e; /* Красный текст */
+   font-size: 1rem;
+   border: 2px solid #e53e3e; /* Красная рамка */
 }
 
 .btn-secondary svg {
