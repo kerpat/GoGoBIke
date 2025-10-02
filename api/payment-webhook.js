@@ -50,10 +50,49 @@ async function processSucceededPayment(notification) {
     // Сохраняем метод оплаты, если он есть и userId указан
     if (payment.payment_method?.id && userId) {
         console.log(`[СОХРАНЕНИЕ МЕТОДА] для userId: ${userId}, method_id: ${payment.payment_method.id}`);
+        
+        // Формируем детали метода оплаты для поля extra
+        const paymentMethodDetails = {
+            type: payment.payment_method.type,
+            id: payment.payment_method.id,
+            saved: payment.payment_method.saved || true,
+            title: payment.payment_method.title || 'Способ оплаты'
+        };
+
+        // Добавляем детали карты, если это банковская карта
+        if (payment.payment_method.type === 'bank_card' && payment.payment_method.card) {
+            paymentMethodDetails.card = {
+                first6: payment.payment_method.card.first6,
+                last4: payment.payment_method.card.last4,
+                expiry_month: payment.payment_method.card.expiry_month,
+                expiry_year: payment.payment_method.card.expiry_year,
+                card_type: payment.payment_method.card.card_type,
+                issuer_country: payment.payment_method.card.issuer_country,
+                issuer_name: payment.payment_method.card.issuer_name
+            };
+        }
+
+        // Получаем текущий extra, чтобы не перезаписать другие данные
+        const { data: currentClient } = await supabaseAdmin
+            .from('clients')
+            .select('extra')
+            .eq('id', userId)
+            .single();
+
+        const currentExtra = currentClient?.extra || {};
+        const updatedExtra = {
+            ...currentExtra,
+            payment_method_details: paymentMethodDetails
+        };
+
+        // Обновляем клиента
         await supabaseAdmin.from('clients').update({ 
             yookassa_payment_method_id: payment.payment_method.id, 
-            autopay_enabled: true 
+            autopay_enabled: true,
+            extra: updatedExtra
         }).eq('id', userId);
+        
+        console.log(`[СОХРАНЕНИЕ МЕТОДА] Детали сохранены в extra:`, paymentMethodDetails);
     }
 
     if (payment_type === 'save_card') {
