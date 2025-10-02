@@ -150,6 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let clientsData = []; // Кэш данных клиентов для просмотра/редактирования
     let currentEditingId = null;
     let currentEditingExtra = null;
+    let bookingUpdateInterval = null; // Таймер для обновления броней
     let templateEditorInstance = null; // TipTap editor instance
 
     // --- Map Logic (НОВЫЙ БЛОК) ---
@@ -679,6 +680,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function selectSection(name) {
         const adminAppContainer = document.getElementById('admin-app'); // Находим главный контейнер
 
+        // Перед сменой секции всегда останавливаем таймер броней
+        if (bookingUpdateInterval) {
+            clearInterval(bookingUpdateInterval);
+            bookingUpdateInterval = null;
+        }
+
         // Скрываем все секции
         document.querySelectorAll('.admin-section').forEach(sec => sec.classList.add('hidden'));
 
@@ -705,9 +712,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // --- НОВЫЙ КОД: УПРАВЛЕНИЕ ШИРИНОЙ КОНТЕЙНЕРА ---
-        // Если выбрана секция 'rentals' ИЛИ 'bikes', добавляем класс, иначе — убираем.
+        // Если выбрана секция 'rentals' ИЛИ 'bikes' ИЛИ 'bookings', добавляем класс, иначе — убираем.
         if (adminAppContainer) {
-            if (name === 'rentals' || name === 'bikes') {
+            if (name === 'rentals' || name === 'bikes' || name === 'bookings') {
                 adminAppContainer.classList.add('wide-content');
             } else {
                 adminAppContainer.classList.remove('wide-content');
@@ -2180,6 +2187,11 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadBookings() {
         const tbody = document.querySelector('#bookings-table tbody');
         if (!tbody) return;
+        // Останавливаем предыдущий таймер, если он был
+        if (bookingUpdateInterval) {
+            clearInterval(bookingUpdateInterval);
+            bookingUpdateInterval = null;
+        }
         tbody.innerHTML = '<tr><td colspan="5">Загрузка...</td></tr>';
 
         try {
@@ -2200,30 +2212,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             data.forEach(booking => {
                 const tr = document.createElement('tr');
-                const expiresDate = new Date(booking.expires_at);
-                const timeLeftMs = Math.max(0, expiresDate.getTime() - new Date().getTime());
-
-                const totalMinutesLeft = Math.floor(timeLeftMs / 60000);
-                const secondsLeft = Math.floor((timeLeftMs % 60000) / 1000);
-                const timeLeftFormatted = `${totalMinutesLeft} мин. ${secondsLeft} сек.`;
-
-                // Рассчитываем прогресс
-                const totalDurationMs = 2 * 60 * 60 * 1000; // 2 часа
-                const progress = (timeLeftMs / totalDurationMs) * 100;
-
-                // Определяем цвет прогресс-бара
-                let progressBarColor = '#26b999'; // Зеленый
-                if (progress < 50) progressBarColor = '#f5a623'; // Оранжевый
-                if (progress < 15) progressBarColor = '#e53e3e'; // Красный
+                tr.dataset.expiresAt = booking.expires_at; // Сохраняем дату для таймера
 
                 tr.innerHTML = `
                     <td>${booking.clients?.name || 'ID: ' + booking.user_id}</td>
                     <td>${booking.clients?.phone || '—'}</td>
-                    <td>${expiresDate.toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+                    <td>${new Date(booking.expires_at).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                     <td class="progress-cell">
-                         <span style="font-size: 0.9em; color: #666;">${timeLeftFormatted}</span>
+                         <span class="time-left-display" style="font-size: 0.9em; color: #666;">Загрузка...</span>
                          <div class="progress-bar-container" style="margin-top: 4px;">
-                            <div class="progress-bar" style="width: ${progress.toFixed(2)}%; background-color: ${progressBarColor};"></div>
+                            <div class="progress-bar-fill" style="width: 100%;"></div>
                          </div>
                     </td>
                     <td class="table-actions">
@@ -2234,6 +2232,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 tbody.appendChild(tr);
             });
 
+            // Функция для обновления таймеров
+            const updateBookingTimers = () => {
+                tbody.querySelectorAll('tr[data-expires-at]').forEach(row => {
+                    const expiresDate = new Date(row.dataset.expiresAt);
+                    const timeLeftMs = Math.max(0, expiresDate.getTime() - new Date().getTime());
+                    const totalDurationMs = 2 * 60 * 60 * 1000;
+                    const progress = (timeLeftMs / totalDurationMs) * 100;
+
+                    const minutes = Math.floor(timeLeftMs / 60000);
+                    const seconds = Math.floor((timeLeftMs % 60000) / 1000);
+
+                    let progressBarColor = '#26b999'; // Green
+                    if (progress < 50) progressBarColor = '#f5a623'; // Orange
+                    if (progress < 15) progressBarColor = '#e53e3e'; // Red
+
+                    row.querySelector('.time-left-display').textContent = `${minutes} мин. ${seconds} сек.`;
+                    const progressBarFill = row.querySelector('.progress-bar-fill');
+                    progressBarFill.style.width = `${progress}%`;
+                    progressBarFill.style.backgroundColor = progressBarColor;
+                });
+            };
+
+            updateBookingTimers(); // Первый запуск
+            bookingUpdateInterval = setInterval(updateBookingTimers, 1000); // Обновляем каждую секунду
+
         } catch (err) {
             console.error('Ошибка загрузки броней:', err);
             tbody.innerHTML = `<tr><td colspan="5">Ошибка: ${err.message}</td></tr>`;
@@ -2243,25 +2266,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // +++ НОВЫЕ ОБРАБОТЧИКИ ДЛЯ КНОПОК БРОНИРОВАНИЙ +++
     const bookingsTableBody = document.querySelector('#bookings-table tbody');
     if (bookingsTableBody) {
-        bookingsTableBody.addEventListener('click', async (e) => {
+        bookingsTableBody.addEventListener('click', (e) => {
             const createRentalBtn = e.target.closest('.create-rental-from-booking-btn');
             const rejectBtn = e.target.closest('.reject-booking-btn');
 
             if (createRentalBtn) {
                 const bookingId = createRentalBtn.dataset.bookingId;
-                if (confirm(`Клиент пришел. Создать аренду из брони #${bookingId}?`)) {
-                    // Логика создания аренды (у вас она может отличаться)
-                    alert(`Запускаем процесс создания аренды для брони #${bookingId}`);
-                    // Здесь должен быть ваш код для создания аренды
+                if (confirm(`Вы уверены, что хотите создать аренду из брони #${bookingId}?`)) {
+                    alert("Логика создания аренды из брони еще не реализована.");
+                    // Здесь будет ваш вызов функции для создания аренды
                 }
             }
 
             if (rejectBtn) {
                 if (confirm('Вы уверены, что хотите отклонить эту бронь?')) {
                     const bookingId = rejectBtn.dataset.bookingId;
-                    const { error } = await supabase.from('bookings').update({ status: 'cancelled' }).eq('id', bookingId);
-                    if (error) alert('Ошибка отмены брони: ' + error.message);
-                    else loadBookings(); // Обновляем список
+                    supabase.from('bookings').update({ status: 'cancelled' }).eq('id', bookingId)
+                        .then(({ error }) => {
+                            if (error) alert('Ошибка отмены брони: ' + error.message);
+                            else loadBookings();
+                        });
                 }
             }
         });
