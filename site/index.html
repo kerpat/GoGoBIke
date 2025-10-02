@@ -791,8 +791,11 @@
 
                 if (data.confirmation_url) {
                     window.location.href = data.confirmation_url;
+                } else if (data.status === 'succeeded' || data.status === 'pending') {
+                    // Если оплата прошла автоплатежом, просто перезагружаем
+                    window.location.href = window.location.origin + window.location.pathname + '?booking_success=true';
                 } else {
-                    throw new Error('Не удалось получить ссылку на оплату.');
+                    throw new Error('Не удалось получить ссылку на оплату или подтверждение.');
                 }
             }
 
@@ -1237,6 +1240,7 @@ function initializeMainScreenEventListeners() {
         // Проверяем, вернулся ли пользователь после успешной оплаты
         const urlParams = new URLSearchParams(window.location.search);
         const paymentSuccess = urlParams.get('payment_success');
+        const bookingSuccess = urlParams.get('booking_success');
 
         if (paymentSuccess === 'true') {
             // Показываем модальное окно с просьбой подписать договор
@@ -1251,6 +1255,17 @@ function initializeMainScreenEventListeners() {
             // (Опционально, но рекомендуется) Очищаем URL, чтобы при перезагрузке
             // страницы модальное окно не появилось снова.
             // Это заменяет URL в истории браузера без перезагрузки страницы.
+            window.history.replaceState(null, '', window.location.pathname);
+        }
+
+        if (bookingSuccess === 'true') {
+            // Показываем уведомление об успешном бронировании
+            showToast(bookingSuccessToast);
+
+            // Обновляем данные пользователя после бронирования
+            loadUserData();
+
+            // Очищаем URL параметр
             window.history.replaceState(null, '', window.location.pathname);
         }
         // --- КОНЕЦ НОВОГО БЛОКА ---
