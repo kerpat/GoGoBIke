@@ -3360,12 +3360,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 .from('app_settings')
                 .upsert({
                     key: 'booking_cost_rub',
-                    value: cost.toString(),
-                    updated_at: new Date().toISOString()
-                }, {
-                    onConflict: 'key'
-                })
-                .select();
+                    value: cost.toString()
+                });
 
             if (error) throw error;
 
