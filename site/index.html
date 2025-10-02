@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="config.js"></script>
     <title>Bike App</title>
-    <link rel="stylesheet" href="style.css?v=7.9">
+    <link rel="stylesheet" href="style.css?v=8.1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://briulxpnjxlsgfgkqvfh.supabase.co" crossorigin>
@@ -20,34 +20,43 @@
     text-align: center;
 }
 
-/* === СТИЛИ ДЛЯ ДВУХУРОВНЕВОГО СПИСКА АКБ === */
+/* === СТИЛИ ДЛЯ ИНФОРМАЦИИ ОБ АКБ === */
 
-/* 1. Внешний зеленый контейнер-карточка */
 .battery-info-container {
-    background-color: var(--card-bg); /* Светло-зеленый фон */
-    border-radius: 16px;
-    padding: 12px 15px;      /* Внутренние отступы, чтобы белая карточка не прилипала */
-    margin: 10px 0 20px 0;
-    display: flex;           /* Используем flexbox для центрирования */
-    justify-content: center; /* Центрируем белую карточку по горизонтали */
-    align-items: center;     /* И по вертикали */
+    margin: 16px 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-/* 2. Внутренняя белая "таблетка" с номером */
 .battery-info-chip {
-    display: inline-block; /* <-- Ключевое свойство для динамической ширины */
-    background-color: #ffffff;
-    border-radius: 20px; /* Более сильное скругление для вида "таблетки" */
-    padding: 8px 16px;   /* Внутренние отступы для текста */
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border: 2px solid #86efac;
+    border-radius: 12px;
+    padding: 10px 18px;
     font-size: 0.95rem;
-    color: var(--dark-green);
+    color: #166534;
     font-weight: 500;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05); /* Легкая тень для объема */
-    border: 1px solid var(--progress-bar-bg); /* Очень светлая рамка */
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.15);
+    transition: all 0.2s ease;
+}
+
+.battery-info-chip:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
 }
 
 .battery-info-chip strong {
     font-weight: 600;
+    color: #15803d;
+}
+
+.battery-info-chip::before {
+    content: "🔋";
+    font-size: 1.2rem;
 }
     </style>
 </head>
