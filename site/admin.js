@@ -28,17 +28,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Tariff elements
     const tariffTableBody = document.querySelector('#tariffs-table tbody');
-    const tariffForm = document.getElementById('tariff-form');
-    const tariffFormTitle = document.getElementById('tariff-form-title');
+    const tariffAddBtn = document.getElementById('tariff-add-btn');
+    const tariffModal = document.getElementById('tariff-modal');
+    const tariffModalTitle = document.getElementById('tariff-modal-title');
+    const tariffModalCloseBtn = document.getElementById('tariff-modal-close-btn');
     const tariffIdInput = document.getElementById('tariff-id');
     const tariffTitleInput = document.getElementById('tariff-title');
     const tariffShortDescriptionInput = document.getElementById('tariff-short-description');
     const tariffDescriptionInput = document.getElementById('tariff-description');
     const tariffActiveCheckbox = document.getElementById('tariff-active');
-    const tariffCancelBtn = document.getElementById('tariff-cancel-btn');
     const extensionsList = document.getElementById('extensions-list');
     const addExtensionBtn = document.getElementById('add-extension-btn');
     const contractTemplateSelect = document.getElementById('contract-template-select');
+
+    // Tariff modal step navigation
+    const tariffPrevBtn = document.getElementById('tariff-prev-btn');
+    const tariffNextBtn = document.getElementById('tariff-next-btn');
+    const tariffSaveBtn = document.getElementById('tariff-save-btn');
+    const tariffStep1 = document.getElementById('tariff-step-1');
+    const tariffStep2 = document.getElementById('tariff-step-2');
+    const tariffStep3 = document.getElementById('tariff-step-3');
 
     // Client elements
     const clientsTableBody = document.querySelector('#clients-table tbody');
@@ -68,8 +77,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Bike elements
     const bikesTableBody = document.querySelector('#bikes-table tbody');
     const bikeAddBtn = document.getElementById('bike-add-btn');
-    const bikeForm = document.getElementById('bike-form');
-    const bikeFormTitle = document.getElementById('bike-form-title');
+    const bikeModal = document.getElementById('bike-modal');
+    const bikeModalTitle = document.getElementById('bike-modal-title');
+    const bikeModalCloseBtn = document.getElementById('bike-modal-close-btn');
     const bikeIdInput = document.getElementById('bike-id');
     const bikeCodeInput = document.getElementById('bike-code');
     const bikeModelInput = document.getElementById('bike-model');
@@ -80,21 +90,34 @@ document.addEventListener('DOMContentLoaded', () => {
     const bikeRegistrationNumberInput = document.getElementById('bike-registration-number');
     const bikeIotDeviceIdInput = document.getElementById('bike-iot-device-id');
     const bikeAdditionalEquipmentInput = document.getElementById('bike-additional-equipment');
-    const bikeCancelBtn = document.getElementById('bike-cancel-btn');
     const bikeTariffSelect = document.getElementById('bike-tariff-select');
+
+    // Bike modal step navigation
+    const bikePrevBtn = document.getElementById('bike-prev-btn');
+    const bikeNextBtn = document.getElementById('bike-next-btn');
+    const bikeSaveBtn = document.getElementById('bike-save-btn');
+    const bikeStep1 = document.getElementById('bike-step-1');
+    const bikeStep2 = document.getElementById('bike-step-2');
+    const bikeStep3 = document.getElementById('bike-step-3');
 
     // Battery elements (НОВЫЙ БЛОК)
     const batteriesSection = document.getElementById('batteries-section');
     const batteriesTableBody = document.querySelector('#batteries-table tbody');
     const batteryAddBtn = document.getElementById('battery-add-btn');
-    const batteryForm = document.getElementById('battery-form');
-    const batteryFormTitle = document.getElementById('battery-form-title');
+    const batteryModal = document.getElementById('battery-modal');
+    const batteryModalTitle = document.getElementById('battery-modal-title');
+    const batteryModalCloseBtn = document.getElementById('battery-modal-close-btn');
     const batteryIdInput = document.getElementById('battery-id');
     const batterySerialNumberInput = document.getElementById('battery-serial-number');
     const batteryCapacityInput = document.getElementById('battery-capacity');
     const batteryDescriptionInput = document.getElementById('battery-description');
     const batteryStatusSelect = document.getElementById('battery-status');
-    const batteryCancelBtn = document.getElementById('battery-cancel-btn');
+    const batteryPrevBtn = document.getElementById('battery-prev-btn');
+    const batteryNextBtn = document.getElementById('battery-next-btn');
+    const batterySaveBtn = document.getElementById('battery-save-btn');
+    const batteryStep1 = document.getElementById('battery-step-1');
+    const batteryStep2 = document.getElementById('battery-step-2');
+    const batteryStep3 = document.getElementById('battery-step-3');
 
     // Battery Assignment Modal elements (НОВЫЙ БЛОК)
     const assignBatteriesModal = document.getElementById('assign-batteries-modal');
@@ -473,6 +496,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Tariff Extensions Logic ---
 
+    // Словарь для перевода ключей распознанных данных
+    const fieldTranslations = {
+        'gender': 'Пол',
+        'number': 'Номер',
+        'series': 'Серия',
+        'full_name': 'ФИО',
+        'last_name': 'Фамилия',
+        'birth_date': 'Дата рождения',
+        'first_name': 'Имя',
+        'issue_date': 'Дата выдачи',
+        'birth_place': 'Место рождения',
+        'middle_name': 'Отчество',
+        'issuing_authority': 'Кем выдан',
+        'registration_address': 'Адрес регистрации'
+    };
+
     // Helper: render client info modal (view + edit + photos + lightbox)
     async function renderClientInfo(clientId) {
         try {
@@ -489,7 +528,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     keys.forEach(k => {
                         const row = document.createElement('div');
                         row.className = 'info-row';
-                        row.innerHTML = `<strong>${k}:</strong><span>${rec[k] ?? ''}</span>`;
+                        const label = fieldTranslations[k] || k;
+                        row.innerHTML = `<strong>${label}:</strong><span>${rec[k] ?? ''}</span>`;
                         recognizedDisplay.appendChild(row);
                     });
                 }
@@ -500,7 +540,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const item = document.createElement('div');
                     item.className = 'form-group';
                     const val = (rec[k] ?? '').toString().replace(/"/g, '&quot;');
-                    item.innerHTML = `<label>${k}</label><input type="text" name="${k}" value="${val}">`;
+                    const label = fieldTranslations[k] || k;
+                    item.innerHTML = `<label>${label}</label><input type="text" name="${k}" value="${val}">`;
                     recognizedEditForm.appendChild(item);
                 });
                 recognizedEditForm.classList.add('hidden');
@@ -580,7 +621,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     Object.keys(updated).forEach(k => {
                         const r = document.createElement('div');
                         r.className = 'info-row';
-                        r.innerHTML = `<strong>${k}:</strong><span>${updated[k]}</span>`;
+                        const label = fieldTranslations[k] || k;
+                        r.innerHTML = `<strong>${label}:</strong><span>${updated[k]}</span>`;
                         recognizedDisplay.appendChild(r);
                     });
                     clientInfoEditToggle.click();
@@ -793,37 +835,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    tariffForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        let tariffId = tariffIdInput.value;
-        const extArr = getExtensionsFromForm();
-        if (extArr.length === 0) {
-            alert('Необходимо добавить хотя бы одно продление (дни и стоимость).');
-            return;
-        }
-        const newTariffData = {
-            title: tariffTitleInput.value,
-            description: tariffDescriptionInput.value,
-            short_description: tariffShortDescriptionInput.value,
-            is_active: tariffActiveCheckbox.checked,
-            price_rub: extArr.length > 0 ? extArr[0].cost : 0, // for legacy compatibility
-            duration_days: extArr.length > 0 ? extArr[0].days : 0, // for legacy compatibility
-            extensions: extArr
-        };
-        if (!tariffId) {
-            newTariffData.slug = tariffTitleInput.value.trim().toLowerCase().replace(/\s+/g, '-');
-        }
-        try {
-            const result = tariffId
-                ? await supabase.from('tariffs').update(newTariffData).eq('id', tariffId)
-                : await supabase.from('tariffs').insert([newTariffData]);
-            if (result.error) throw result.error;
-            await loadTariffs();
-            resetTariffForm();
-        } catch (err) {
-            alert('Ошибка сохранения тарифа: ' + err.message);
-        }
-    });
+    // Old tariff form handler removed - now using modal
 
     tariffTableBody.addEventListener('click', async (e) => {
         const nameLink = e.target.closest('.tariff-name-link');
@@ -842,7 +854,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const editBtn = e.target.closest('.edit-tariff-btn');
         if (editBtn) {
-            editTariff(editBtn.dataset.id);
+            if (window.editTariffModal) {
+                window.editTariffModal(editBtn.dataset.id);
+            }
             return;
         }
 
@@ -862,32 +876,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    async function editTariff(id) {
-        try {
-            const { data, error } = await supabase.from('tariffs').select('*').eq('id', id).single();
-            if (error) throw error;
-            tariffIdInput.value = data.id;
-            tariffTitleInput.value = data.title;
-            document.getElementById('tariff-short-description').value = data.short_description || '';
-            tariffDescriptionInput.value = data.description || '';
-            tariffActiveCheckbox.checked = data.is_active;
-            renderExtensions(data.extensions);
-            tariffFormTitle.textContent = 'Редактировать тариф';
-            tariffCancelBtn.classList.remove('hidden');
-        } catch (err) {
-            alert('Ошибка загрузки тарифа для редактирования: ' + err.message);
-        }
-    }
-
-    function resetTariffForm() {
-        tariffForm.reset();
-        tariffIdInput.value = '';
-        if (extensionsList) extensionsList.innerHTML = '';
-        tariffFormTitle.textContent = 'Создать новый тариф';
-        tariffCancelBtn.classList.add('hidden');
-    }
-
-    tariffCancelBtn.addEventListener('click', resetTariffForm);
+    // Old tariff form functions removed - now using modal
 
     async function previewTariffCard(id) {
         try {
@@ -1093,69 +1082,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Bikes CRUD ---
-    async function showBikeForm(bike = null) {
-        bikeForm.classList.remove('hidden');
-        bikeFormTitle.classList.remove('hidden');
+    // --- Bikes CRUD ---
+    // Old bike form functions removed - now using modal
 
-        // ---> НОВАЯ ЛОГИКА ЗАГРУЗКИ ТАРИФОВ <---
+    // Load tariffs for bike select
+    async function loadTariffsForBikeSelect() {
         if (bikeTariffSelect) {
             try {
                 const { data: tariffs, error } = await supabase.from('tariffs').select('id, title').eq('is_active', true);
                 if (error) throw error;
 
-                bikeTariffSelect.innerHTML = '<option value="">-- Не выбран --</option>'; // Очистка и дефолт
+                bikeTariffSelect.innerHTML = '<option value="">— Не выбран —</option>';
                 tariffs.forEach(tariff => {
                     const option = document.createElement('option');
                     option.value = tariff.id;
                     option.textContent = tariff.title;
                     bikeTariffSelect.appendChild(option);
                 });
-
             } catch (err) {
-                console.error("Ошибка загрузки тарифов в форму:", err);
-                bikeTariffSelect.innerHTML = '<option value="">Ошибка загрузки тарифов</option>';
+                console.error("Ошибка загрузки тарифов:", err);
             }
-        }
-        // ---> КОНЕЦ НОВОЙ ЛОГИКИ <---
-        if (bike) {
-            bikeFormTitle.textContent = 'Редактировать велосипед';
-            bikeIdInput.value = bike.id;
-            bikeCodeInput.value = bike.bike_code;
-            bikeModelInput.value = bike.model_name;
-            bikeCitySelect.value = bike.city || '';
-            bikeStatusSelect.value = bike.status;
-            // ---> Устанавливаем выбранный тариф, если он есть
-            if (bikeTariffSelect) {
-                bikeTariffSelect.value = bike.tariff_id || '';
-            }
-            bikeFrameNumberInput.value = bike.frame_number || '';
-            bikeBatteryNumbersInput.value = Array.isArray(bike.battery_numbers) ? bike.battery_numbers.join(', ') : (bike.battery_numbers || '');
-            bikeRegistrationNumberInput.value = bike.registration_number || '';
-            bikeIotDeviceIdInput.value = bike.iot_device_id || '';
-            bikeAdditionalEquipmentInput.value = bike.additional_equipment || '';
-        } else {
-            bikeFormTitle.textContent = 'Новый велосипед';
-            bikeForm.reset();
-            bikeIdInput.value = '';
-            bikeFrameNumberInput.value = '';
-            bikeBatteryNumbersInput.value = '';
-            bikeRegistrationNumberInput.value = '';
-            bikeIotDeviceIdInput.value = '';
-            bikeAdditionalEquipmentInput.value = '';
         }
     }
 
-    function hideBikeForm() {
-        bikeForm.classList.add('hidden');
-        bikeFormTitle.classList.add('hidden');
-        bikeForm.reset();
-        bikeIdInput.value = '';
-        bikeFrameNumberInput.value = '';
-        bikeBatteryNumbersInput.value = '';
-        bikeRegistrationNumberInput.value = '';
-        bikeIotDeviceIdInput.value = '';
-        bikeAdditionalEquipmentInput.value = '';
-    }
+    // Load tariffs when page loads
+    loadTariffsForBikeSelect();
 
     async function loadBikes() {
         if (!bikesTableBody) return;
@@ -1204,54 +1155,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    if (bikeAddBtn) {
-        bikeAddBtn.addEventListener('click', () => showBikeForm());
-    }
-    if (bikeCancelBtn) {
-        bikeCancelBtn.addEventListener('click', hideBikeForm);
-    }
+    // Old bike form handlers removed - now using modal
 
-    if (bikeForm) {
-        bikeForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id = bikeIdInput.value;
-            const batteryNumbers = bikeBatteryNumbersInput.value.split(',').map(s => s.trim()).filter(s => s);
-            const bikeData = {
-                bike_code: bikeCodeInput.value,
-                model_name: bikeModelInput.value,
-                city: bikeCitySelect.value,
-                status: bikeStatusSelect.value,
-                tariff_id: bikeTariffSelect.value ? parseInt(bikeTariffSelect.value, 10) : null, // <-- ВОТ ЭТА СТРОКА
-                frame_number: bikeFrameNumberInput.value,
-                battery_numbers: batteryNumbers,
-                registration_number: bikeRegistrationNumberInput.value,
-                iot_device_id: bikeIotDeviceIdInput.value,
-                additional_equipment: bikeAdditionalEquipmentInput.value,
-            };
-
-            try {
-                const { error } = id
-                    ? await supabase.from('bikes').update(bikeData).eq('id', id)
-                    : await supabase.from('bikes').insert([bikeData]);
-                if (error) throw error;
-                await loadBikes();
-                hideBikeForm();
-            } catch (err) {
-                alert('Ошибка сохранения велосипеда: ' + err.message);
-            }
-        });
-    }
+    // Old bike form submit handler removed - now using modal
 
     if (bikesTableBody) {
         bikesTableBody.addEventListener('click', async (e) => {
             const editBtn = e.target.closest('.edit-bike-btn');
             if (editBtn) {
-                const id = editBtn.dataset.id;
-                const { data, error } = await supabase.from('bikes').select('*').eq('id', id).single();
-                if (error) {
-                    alert('Не удалось загрузить данные велосипеда: ' + error.message);
-                } else {
-                    showBikeForm(data);
+                if (window.editBikeModal) {
+                    window.editBikeModal(editBtn.dataset.id);
                 }
                 return;
             }
@@ -1274,28 +1187,70 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- НОВЫЙ БЛОК: Batteries CRUD ---
 
-    function showBatteryForm(battery = null) {
-        batteryForm.classList.remove('hidden');
-        batteryFormTitle.classList.remove('hidden');
+    let currentBatteryStep = 1;
+
+    function showBatteryModal(battery = null) {
+        currentBatteryStep = 1;
+        batteryModal.classList.remove('hidden');
+
         if (battery) {
-            batteryFormTitle.textContent = 'Редактировать аккумулятор';
+            batteryModalTitle.textContent = 'Редактировать аккумулятор';
             batteryIdInput.value = battery.id;
             batterySerialNumberInput.value = battery.serial_number;
-            batteryCapacityInput.value = battery.capacity_wh;
-            batteryDescriptionInput.value = battery.description;
+            batteryCapacityInput.value = battery.capacity_wh || '';
+            batteryDescriptionInput.value = battery.description || '';
             batteryStatusSelect.value = battery.status;
         } else {
-            batteryFormTitle.textContent = 'Новый аккумулятор';
-            batteryForm.reset();
+            batteryModalTitle.textContent = 'Новый аккумулятор';
             batteryIdInput.value = '';
+            batterySerialNumberInput.value = '';
+            batteryCapacityInput.value = '';
+            batteryDescriptionInput.value = '';
+            batteryStatusSelect.value = 'available';
         }
+
+        updateBatteryStepDisplay();
     }
 
-    function hideBatteryForm() {
-        batteryForm.classList.add('hidden');
-        batteryFormTitle.classList.add('hidden');
-        batteryForm.reset();
+    function hideBatteryModal() {
+        batteryModal.classList.add('hidden');
+        currentBatteryStep = 1;
         batteryIdInput.value = '';
+        batterySerialNumberInput.value = '';
+        batteryCapacityInput.value = '';
+        batteryDescriptionInput.value = '';
+        batteryStatusSelect.value = 'available';
+    }
+
+    function updateBatteryStepDisplay() {
+        // Hide all steps
+        batteryStep1.classList.add('hidden');
+        batteryStep2.classList.add('hidden');
+        batteryStep3.classList.add('hidden');
+
+        // Show current step
+        if (currentBatteryStep === 1) batteryStep1.classList.remove('hidden');
+        if (currentBatteryStep === 2) batteryStep2.classList.remove('hidden');
+        if (currentBatteryStep === 3) batteryStep3.classList.remove('hidden');
+
+        // Update step indicators
+        document.querySelectorAll('#battery-modal .step-indicator').forEach((indicator, index) => {
+            const circle = indicator.querySelector('.step-circle');
+            if (index + 1 < currentBatteryStep) {
+                circle.classList.add('completed');
+                circle.classList.remove('active');
+            } else if (index + 1 === currentBatteryStep) {
+                circle.classList.add('active');
+                circle.classList.remove('completed');
+            } else {
+                circle.classList.remove('active', 'completed');
+            }
+        });
+
+        // Update buttons
+        batteryPrevBtn.classList.toggle('hidden', currentBatteryStep === 1);
+        batteryNextBtn.classList.toggle('hidden', currentBatteryStep === 3);
+        batterySaveBtn.classList.toggle('hidden', currentBatteryStep !== 3);
     }
 
     async function loadBatteries() {
@@ -1331,17 +1286,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    if (batteryAddBtn) batteryAddBtn.addEventListener('click', () => showBatteryForm());
-    if (batteryCancelBtn) batteryCancelBtn.addEventListener('click', hideBatteryForm);
+    if (batteryAddBtn) batteryAddBtn.addEventListener('click', () => showBatteryModal());
+    if (batteryModalCloseBtn) batteryModalCloseBtn.addEventListener('click', hideBatteryModal);
 
-    if (batteryForm) {
-        batteryForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+    if (batteryPrevBtn) {
+        batteryPrevBtn.addEventListener('click', () => {
+            if (currentBatteryStep > 1) {
+                currentBatteryStep--;
+                updateBatteryStepDisplay();
+            }
+        });
+    }
+
+    if (batteryNextBtn) {
+        batteryNextBtn.addEventListener('click', () => {
+            // Validate current step
+            if (currentBatteryStep === 1) {
+                if (!batterySerialNumberInput.value.trim()) {
+                    alert('Пожалуйста, укажите серийный номер');
+                    return;
+                }
+            }
+
+            if (currentBatteryStep < 3) {
+                currentBatteryStep++;
+                updateBatteryStepDisplay();
+            }
+        });
+    }
+
+    if (batterySaveBtn) {
+        batterySaveBtn.addEventListener('click', async () => {
             const id = batteryIdInput.value;
             const batteryData = {
-                serial_number: batterySerialNumberInput.value,
+                serial_number: batterySerialNumberInput.value.trim(),
                 capacity_wh: batteryCapacityInput.value ? parseInt(batteryCapacityInput.value, 10) : null,
-                description: batteryDescriptionInput.value,
+                description: batteryDescriptionInput.value.trim() || null,
                 status: batteryStatusSelect.value,
             };
 
@@ -1351,7 +1331,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     : await supabase.from('batteries').insert([batteryData]);
                 if (error) throw error;
                 await loadBatteries();
-                hideBatteryForm();
+                hideBatteryModal();
             } catch (err) {
                 alert('Ошибка сохранения аккумулятора: ' + err.message);
             }
@@ -1365,7 +1345,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const id = editBtn.dataset.id;
                 const { data, error } = await supabase.from('batteries').select('*').eq('id', id).single();
                 if (error) alert('Не удалось загрузить данные: ' + error.message);
-                else showBatteryForm(data);
+                else showBatteryModal(data);
                 return;
             }
             const deleteBtn = e.target.closest('.delete-battery-btn');
@@ -1571,6 +1551,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const rentalBikeSelect = document.getElementById('rental-edit-bike');
     const rentalEndDateInput = document.getElementById('rental-edit-end-date');
     const rentalStatusSelect = document.getElementById('rental-edit-status');
+    const rentalEditBatteriesList = document.getElementById('rental-edit-batteries-list');
+    const rentalEditChangeBatteriesBtn = document.getElementById('rental-edit-change-batteries-btn');
+
+    let currentRentalBatteries = [];
 
     if (rentalsTableBody) {
         rentalsTableBody.addEventListener('click', async (e) => {
@@ -1616,6 +1600,20 @@ document.addEventListener('DOMContentLoaded', () => {
                         rentalEndDateInput.value = date.toISOString().slice(0, 16);
                     }
 
+                    // Загружаем АКБ для этой аренды
+                    const { data: batteries, error: battError } = await supabase
+                        .from('rental_batteries')
+                        .select('battery_id, batteries(serial_number)')
+                        .eq('rental_id', rentalId);
+
+                    if (!battError && batteries) {
+                        currentRentalBatteries = batteries.map(b => ({
+                            id: b.battery_id,
+                            serial: b.batteries?.serial_number || 'Неизвестно'
+                        }));
+                        renderRentalBatteriesList();
+                    }
+
                     rentalEditModal.classList.remove('hidden');
                 } catch (err) {
                     alert('Ошибка загрузки данных аренды: ' + err.message);
@@ -1635,6 +1633,93 @@ document.addEventListener('DOMContentLoaded', () => {
                     } catch (err) {
                         alert('Ошибка завершения аренды: ' + err.message);
                     }
+                }
+            }
+        });
+    }
+
+    // Функция отображения списка АКБ
+    function renderRentalBatteriesList() {
+        if (!rentalEditBatteriesList) return;
+
+        if (currentRentalBatteries.length === 0) {
+            rentalEditBatteriesList.innerHTML = '<p style="color: #666; font-size: 14px;">АКБ не назначены</p>';
+        } else {
+            rentalEditBatteriesList.innerHTML = currentRentalBatteries.map(b =>
+                `<div style="padding: 8px 12px; background: var(--card-bg); border-radius: 6px; border: 1px solid var(--progress-bar-bg);">
+                    <strong>АКБ:</strong> ${b.serial}
+                </div>`
+            ).join('');
+        }
+    }
+
+    // Обработчик кнопки "Изменить АКБ"
+    if (rentalEditChangeBatteriesBtn) {
+        rentalEditChangeBatteriesBtn.addEventListener('click', async () => {
+            const rentalId = rentalIdInput.value;
+            if (!rentalId) return;
+
+            // Открываем существующее модальное окно выбора АКБ
+            if (assignBatteriesModal && assignBatteriesRentalIdInput) {
+                assignBatteriesRentalIdInput.value = rentalId;
+
+                // Загружаем доступные АКБ
+                try {
+                    const { data: batteries, error } = await supabase
+                        .from('batteries')
+                        .select('*')
+                        .eq('status', 'available');
+
+                    if (error) throw error;
+
+                    if (batterySelectList) {
+                        batterySelectList.innerHTML = '';
+                        // Ограничиваем отображение до 5 АКБ
+                        const limitedBatteries = batteries.slice(0, 5);
+                        limitedBatteries.forEach(battery => {
+                            const label = document.createElement('label');
+                            label.className = 'battery-checkbox-item';
+                            label.innerHTML = `
+                                <input type="checkbox" name="battery" value="${battery.id}">
+                                <span>${battery.serial_number} (${battery.capacity_wh || 'N/A'} Wh)</span>
+                            `;
+                            batterySelectList.appendChild(label);
+                        });
+
+                        // Показываем сообщение если АКБ больше 5
+                        if (batteries.length > 5) {
+                            const hint = document.createElement('p');
+                            hint.style.cssText = 'color: #666; font-size: 13px; margin: 10px 0 0 0; text-align: center;';
+                            hint.textContent = `Показано 5 из ${batteries.length} АКБ. Используйте поиск для фильтрации.`;
+                            batterySelectList.appendChild(hint);
+                        }
+                    }
+
+                    // Добавляем динамический поиск
+                    const searchInput = document.getElementById('battery-search-in-modal');
+                    if (searchInput) {
+                        // Сбрасываем значение поиска
+                        searchInput.value = '';
+
+                        // Удаляем старые обработчики (если есть)
+                        const newSearchInput = searchInput.cloneNode(true);
+                        searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+
+                        // Добавляем новый обработчик
+                        newSearchInput.addEventListener('input', () => {
+                            const query = newSearchInput.value.toLowerCase().trim();
+                            batterySelectList.querySelectorAll('label').forEach(label => {
+                                const text = label.textContent.toLowerCase();
+                                label.style.display = text.includes(query) ? 'block' : 'none';
+                            });
+                        });
+                    }
+
+                    assignBatteriesModal.classList.remove('hidden');
+                    rentalEditModal.classList.add('hidden');
+
+                } catch (err) {
+                    alert('Ошибка загрузки АКБ: ' + err.message);
                 }
             }
         });
@@ -1800,11 +1885,25 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Ошибка загрузки платежей:', err);
         }
     }
+    // Update dashboard time
+    function updateDashboardTime() {
+        const timeElement = document.getElementById('dashboard-time');
+        if (timeElement) {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            timeElement.textContent = `${hours}:${minutes}`;
+        }
+    }
+
+    // Update time every minute
+    updateDashboardTime();
+    setInterval(updateDashboardTime, 60000);
+
     async function loadDashboardData() {
         // 1. Load Bike Stats
-        const metricsContainer = document.getElementById('dashboard-metrics');
-        if (metricsContainer) {
-            metricsContainer.innerHTML = '<p>Загрузка метрик...</p>';
+        const bikesContainer = document.getElementById('dashboard-bikes');
+        if (bikesContainer) {
             try {
                 const { data, error } = await supabase.from('bikes').select('status');
                 if (error) throw error;
@@ -1819,18 +1918,124 @@ document.addEventListener('DOMContentLoaded', () => {
                 const rented = stats.rented || 0;
                 const in_service = stats.in_service || 0;
 
-                metricsContainer.innerHTML = `
-                    <div class="card"><div class="text-content"><span>Всего велосипедов</span><strong>${total}</strong></div></div>
-                    <div class="card"><div class="text-content"><span>Свободно</span><strong>${available}</strong></div></div>
-                    <div class="card"><div class="text-content"><span>В аренде</span><strong>${rented}</strong></div></div>
-                    <div class="card"><div class="text-content"><span>В ремонте</span><strong>${in_service}</strong></div></div>
+                bikesContainer.innerHTML = `
+                    <div class="dashboard-stat-item">
+                        <span class="dashboard-stat-label">Всего велосипедов</span>
+                        <span class="dashboard-stat-value">${total}</span>
+                    </div>
+                    <div class="dashboard-stat-item">
+                        <span class="dashboard-stat-label">Свободно</span>
+                        <span class="dashboard-stat-value accent">${available}</span>
+                    </div>
+                    <div class="dashboard-stat-item">
+                        <span class="dashboard-stat-label">В аренде</span>
+                        <span class="dashboard-stat-value warning">${rented}</span>
+                    </div>
+                    <div class="dashboard-stat-item">
+                        <span class="dashboard-stat-label">В ремонте</span>
+                        <span class="dashboard-stat-value danger">${in_service}</span>
+                    </div>
                 `;
             } catch (err) {
-                metricsContainer.innerHTML = `<p>Ошибка загрузки статистики велосипедов: ${err.message}</p>`;
+                bikesContainer.innerHTML = `<p>Ошибка: ${err.message}</p>`;
             }
         }
 
-        // 2. Load Payments for Chart
+        // 2. Load Operations Stats
+        const operationsContainer = document.getElementById('dashboard-operations');
+        if (operationsContainer) {
+            try {
+                // Active rentals
+                const { data: rentals, error: rentalsError } = await supabase
+                    .from('rentals')
+                    .select('id')
+                    .eq('status', 'active');
+                if (rentalsError) throw rentalsError;
+
+                // New clients this week
+                const weekAgo = new Date();
+                weekAgo.setDate(weekAgo.getDate() - 7);
+                const { data: newClients, error: clientsError } = await supabase
+                    .from('clients')
+                    .select('id')
+                    .gte('created_at', weekAgo.toISOString());
+                if (clientsError) throw clientsError;
+
+                // Total batteries
+                const { data: batteries, error: batteriesError } = await supabase
+                    .from('batteries')
+                    .select('status');
+                if (batteriesError) throw batteriesError;
+
+                const availableBatteries = batteries.filter(b => b.status === 'available').length;
+
+                operationsContainer.innerHTML = `
+                    <div class="dashboard-stat-item">
+                        <span class="dashboard-stat-label">Активные аренды</span>
+                        <span class="dashboard-stat-value warning">${rentals.length}</span>
+                    </div>
+                    <div class="dashboard-stat-item">
+                        <span class="dashboard-stat-label">Новые клиенты (7 дн.)</span>
+                        <span class="dashboard-stat-value accent">${newClients.length}</span>
+                    </div>
+                    <div class="dashboard-stat-item">
+                        <span class="dashboard-stat-label">Свободные АКБ</span>
+                        <span class="dashboard-stat-value">${availableBatteries}</span>
+                    </div>
+                `;
+            } catch (err) {
+                operationsContainer.innerHTML = `<p>Ошибка: ${err.message}</p>`;
+            }
+        }
+
+        // 3. Load Revenue Data
+        const revenueContainer = document.getElementById('revenue-breakdown');
+        const weeklyIncomeDiv = document.getElementById('weekly-income');
+        try {
+            const weekAgo = new Date();
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            const { data: weekPayments, error } = await supabase
+                .from('payments')
+                .select('amount_rub, status, payment_type')
+                .gte('created_at', weekAgo.toISOString())
+                .eq('status', 'succeeded');
+            if (error) throw error;
+
+            const total = (weekPayments || []).reduce((sum, p) => sum + (p.amount_rub || 0), 0);
+            const avgPayment = weekPayments.length > 0 ? Math.round(total / weekPayments.length) : 0;
+            const rentalPayments = weekPayments.filter(p => p.payment_type === 'rental').length;
+            const depositPayments = weekPayments.filter(p => p.payment_type === 'deposit').length;
+
+            if (weeklyIncomeDiv) {
+                weeklyIncomeDiv.textContent = `${total.toLocaleString('ru-RU')} ₽`;
+            }
+
+            if (revenueContainer) {
+                revenueContainer.innerHTML = `
+                    <div class="revenue-stat-item">
+                        <div class="revenue-stat-label">Средний чек</div>
+                        <div class="revenue-stat-value">${avgPayment.toLocaleString('ru-RU')} ₽</div>
+                    </div>
+                    <div class="revenue-stat-item">
+                        <div class="revenue-stat-label">Всего платежей</div>
+                        <div class="revenue-stat-value">${weekPayments.length}</div>
+                    </div>
+                    <div class="revenue-stat-item">
+                        <div class="revenue-stat-label">Аренды</div>
+                        <div class="revenue-stat-value">${rentalPayments}</div>
+                    </div>
+                    <div class="revenue-stat-item">
+                        <div class="revenue-stat-label">Депозиты</div>
+                        <div class="revenue-stat-value">${depositPayments}</div>
+                    </div>
+                `;
+            }
+        } catch (err) {
+            console.error('Ошибка загрузки недельного дохода:', err);
+            if (weeklyIncomeDiv) weeklyIncomeDiv.textContent = 'Ошибка';
+        }
+
+        // 4. Load Payments for Chart
         try {
             const { data, error } = await supabase
                 .from('payments')
@@ -1842,28 +2047,6 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Ошибка загрузки данных для графика платежей:', err);
         }
 
-        // 3. Load Weekly Income
-        try {
-            const weekAgo = new Date();
-            weekAgo.setDate(weekAgo.getDate() - 7);
-            const { data, error } = await supabase
-                .from('payments')
-                .select('amount_rub, status')
-                .gte('created_at', weekAgo.toISOString())
-                .eq('status', 'succeeded');
-            if (error) throw error;
-            const total = (data || []).reduce((sum, p) => sum + (p.amount_rub || 0), 0);
-            const weeklyIncomeDiv = document.getElementById('weekly-income');
-            if (weeklyIncomeDiv) {
-                weeklyIncomeDiv.textContent = `Общий доход: ${total} ₽`;
-            }
-        } catch (err) {
-            console.error('Ошибка загрузки недельного дохода:', err);
-            const weeklyIncomeDiv = document.getElementById('weekly-income');
-            if (weeklyIncomeDiv) {
-                weeklyIncomeDiv.textContent = 'Ошибка загрузки';
-            }
-        }
     }
 
     // --- Client Info/Edit Modals Logic ---
@@ -2610,11 +2793,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         console.log('Создаем список из', data.length, 'аккумуляторов');
                         data.forEach(battery => {
                             const label = document.createElement('label');
-                            label.style.display = 'block';
-                            label.style.padding = '8px';
-                            label.style.cursor = 'pointer';
-                            label.innerHTML = `<input type="checkbox" value="${battery.id}" style="margin-right: 10px;">
-                                <strong>${battery.serial_number}</strong> (${battery.capacity_wh || 'N/A'} Wh)`;
+                            label.className = 'battery-checkbox-item';
+                            label.innerHTML = `<input type="checkbox" value="${battery.id}">
+                                <span>${battery.serial_number} (${battery.capacity_wh || 'N/A'} Wh)</span>`;
                             batterySelectList.appendChild(label);
                         });
                     }
@@ -3117,6 +3298,410 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Initialize modal on first open
         resetModal();
+    }
+
+    // --- Step-by-Step Tariff Modal Logic ---
+    if (tariffModal) {
+        let currentTariffStep = 1;
+        let editingTariffId = null;
+
+        // Helper: Update step indicators
+        function updateTariffStepIndicators() {
+            document.querySelectorAll('#tariff-modal .step-indicator').forEach((indicator, index) => {
+                const stepNum = index + 1;
+                const circle = indicator.querySelector('.step-circle');
+
+                if (stepNum < currentTariffStep) {
+                    circle.classList.add('completed');
+                    circle.classList.remove('active');
+                } else if (stepNum === currentTariffStep) {
+                    circle.classList.add('active');
+                    circle.classList.remove('completed');
+                } else {
+                    circle.classList.remove('active', 'completed');
+                }
+
+                indicator.classList.toggle('active', stepNum === currentTariffStep);
+            });
+        }
+
+        // Helper: Show specific step
+        function showTariffStep(step) {
+            currentTariffStep = step;
+
+            // Hide all steps
+            tariffStep1.classList.add('hidden');
+            tariffStep2.classList.add('hidden');
+            tariffStep3.classList.add('hidden');
+
+            // Show current step
+            if (step === 1) tariffStep1.classList.remove('hidden');
+            if (step === 2) tariffStep2.classList.remove('hidden');
+            if (step === 3) tariffStep3.classList.remove('hidden');
+
+            // Update buttons
+            tariffPrevBtn.classList.toggle('hidden', step === 1);
+            tariffNextBtn.classList.toggle('hidden', step === 3);
+            tariffSaveBtn.classList.toggle('hidden', step !== 3);
+
+            updateTariffStepIndicators();
+        }
+
+        // Helper: Reset modal
+        function resetTariffModal() {
+            showTariffStep(1);
+            tariffIdInput.value = '';
+            tariffTitleInput.value = '';
+            tariffShortDescriptionInput.value = '';
+            tariffActiveCheckbox.checked = true;
+            extensionsList.innerHTML = '';
+            editingTariffId = null;
+            tariffModalTitle.textContent = 'Новый тариф';
+            addExtensionRow(); // Add one default row
+        }
+
+        // Helper: Add extension row
+        function addExtensionRow(days = '', price = '') {
+            const row = document.createElement('div');
+            row.className = 'extension-item';
+            row.innerHTML = `
+                <input type="number" placeholder="Дней" value="${days}" min="1" required>
+                <input type="number" placeholder="Цена (₽)" value="${price}" min="0" step="0.01" required>
+                <button type="button" class="remove-extension-btn">×</button>
+            `;
+
+            row.querySelector('.remove-extension-btn').addEventListener('click', () => {
+                if (extensionsList.children.length > 1) {
+                    row.remove();
+                } else {
+                    alert('Должен быть хотя бы один период аренды');
+                }
+            });
+
+            extensionsList.appendChild(row);
+        }
+
+        // Add extension button
+        if (addExtensionBtn) {
+            addExtensionBtn.addEventListener('click', () => addExtensionRow());
+        }
+
+        // Open modal for new tariff
+        if (tariffAddBtn) {
+            tariffAddBtn.addEventListener('click', () => {
+                resetTariffModal();
+                tariffModal.classList.remove('hidden');
+            });
+        }
+
+        // Close modal
+        if (tariffModalCloseBtn) {
+            tariffModalCloseBtn.addEventListener('click', () => {
+                tariffModal.classList.add('hidden');
+                resetTariffModal();
+            });
+        }
+
+        // Close on overlay click
+        tariffModal.addEventListener('click', (e) => {
+            if (e.target === tariffModal) {
+                tariffModal.classList.add('hidden');
+                resetTariffModal();
+            }
+        });
+
+        // Step navigation
+        if (tariffPrevBtn) {
+            tariffPrevBtn.addEventListener('click', () => {
+                if (currentTariffStep > 1) showTariffStep(currentTariffStep - 1);
+            });
+        }
+
+        if (tariffNextBtn) {
+            tariffNextBtn.addEventListener('click', () => {
+                // Validation before moving to next step
+                if (currentTariffStep === 1) {
+                    if (!tariffTitleInput.value.trim()) {
+                        alert('Пожалуйста, укажите название тарифа');
+                        return;
+                    }
+                }
+
+                if (currentTariffStep === 2) {
+                    const rows = extensionsList.querySelectorAll('.extension-item');
+                    let valid = true;
+                    rows.forEach(row => {
+                        const inputs = row.querySelectorAll('input');
+                        if (!inputs[0].value || !inputs[1].value) {
+                            valid = false;
+                        }
+                    });
+                    if (!valid) {
+                        alert('Пожалуйста, заполните все поля стоимости и длительности');
+                        return;
+                    }
+                }
+
+                if (currentTariffStep < 3) showTariffStep(currentTariffStep + 1);
+            });
+        }
+
+        // Save tariff
+        if (tariffSaveBtn) {
+            tariffSaveBtn.addEventListener('click', async () => {
+                try {
+                    toggleButtonLoading(tariffSaveBtn, true, 'Сохранить тариф', 'Сохранение...');
+
+                    // Collect extensions data
+                    const extensions = [];
+                    extensionsList.querySelectorAll('.extension-item').forEach(row => {
+                        const inputs = row.querySelectorAll('input');
+                        extensions.push({
+                            days: parseInt(inputs[0].value),
+                            price_rub: parseFloat(inputs[1].value)
+                        });
+                    });
+
+                    const tariffData = {
+                        title: tariffTitleInput.value.trim(),
+                        short_description: tariffShortDescriptionInput.value.trim(),
+                        extensions: extensions,
+                        is_active: tariffActiveCheckbox.checked
+                    };
+
+                    let result;
+                    if (editingTariffId) {
+                        result = await supabase.from('tariffs').update(tariffData).eq('id', editingTariffId);
+                    } else {
+                        result = await supabase.from('tariffs').insert([tariffData]);
+                    }
+
+                    if (result.error) throw result.error;
+
+                    alert(editingTariffId ? 'Тариф успешно обновлен' : 'Тариф успешно создан');
+                    tariffModal.classList.add('hidden');
+                    resetTariffModal();
+                    await loadTariffs();
+
+                } catch (err) {
+                    alert('Ошибка сохранения тарифа: ' + err.message);
+                } finally {
+                    toggleButtonLoading(tariffSaveBtn, false, 'Сохранить тариф', 'Сохранение...');
+                }
+            });
+        }
+
+        // Edit tariff function (will be called from table)
+        window.editTariffModal = async function (id) {
+            try {
+                const { data, error } = await supabase.from('tariffs').select('*').eq('id', id).single();
+                if (error) throw error;
+
+                editingTariffId = id;
+                tariffModalTitle.textContent = 'Редактировать тариф';
+                tariffIdInput.value = id;
+                tariffTitleInput.value = data.title || '';
+                tariffShortDescriptionInput.value = data.short_description || '';
+                tariffActiveCheckbox.checked = data.is_active !== false;
+
+                // Load extensions
+                extensionsList.innerHTML = '';
+                if (data.extensions && data.extensions.length > 0) {
+                    data.extensions.forEach(ext => {
+                        addExtensionRow(ext.days, ext.price_rub);
+                    });
+                } else {
+                    addExtensionRow();
+                }
+
+                showTariffStep(1);
+                tariffModal.classList.remove('hidden');
+
+            } catch (err) {
+                alert('Ошибка загрузки тарифа: ' + err.message);
+            }
+        };
+    }
+
+    // --- Step-by-Step Bike Modal Logic ---
+    if (bikeModal) {
+        let currentBikeStep = 1;
+        let editingBikeId = null;
+
+        // Helper: Update step indicators
+        function updateBikeStepIndicators() {
+            document.querySelectorAll('#bike-modal .step-indicator').forEach((indicator, index) => {
+                const stepNum = index + 1;
+                const circle = indicator.querySelector('.step-circle');
+
+                if (stepNum < currentBikeStep) {
+                    circle.classList.add('completed');
+                    circle.classList.remove('active');
+                } else if (stepNum === currentBikeStep) {
+                    circle.classList.add('active');
+                    circle.classList.remove('completed');
+                } else {
+                    circle.classList.remove('active', 'completed');
+                }
+
+                indicator.classList.toggle('active', stepNum === currentBikeStep);
+            });
+        }
+
+        // Helper: Show specific step
+        function showBikeStep(step) {
+            currentBikeStep = step;
+
+            // Hide all steps
+            bikeStep1.classList.add('hidden');
+            bikeStep2.classList.add('hidden');
+            bikeStep3.classList.add('hidden');
+
+            // Show current step
+            if (step === 1) bikeStep1.classList.remove('hidden');
+            if (step === 2) bikeStep2.classList.remove('hidden');
+            if (step === 3) bikeStep3.classList.remove('hidden');
+
+            // Update buttons
+            bikePrevBtn.classList.toggle('hidden', step === 1);
+            bikeNextBtn.classList.toggle('hidden', step === 3);
+            bikeSaveBtn.classList.toggle('hidden', step !== 3);
+
+            updateBikeStepIndicators();
+        }
+
+        // Helper: Reset modal
+        function resetBikeModal() {
+            showBikeStep(1);
+            bikeIdInput.value = '';
+            bikeCodeInput.value = '';
+            bikeModelInput.value = '';
+            bikeCitySelect.value = 'Воронеж';
+            bikeTariffSelect.value = '';
+            bikeFrameNumberInput.value = '';
+            bikeRegistrationNumberInput.value = '';
+            bikeIotDeviceIdInput.value = '';
+            bikeAdditionalEquipmentInput.value = '';
+            bikeStatusSelect.value = 'available';
+            editingBikeId = null;
+            bikeModalTitle.textContent = 'Новый велосипед';
+        }
+
+        // Open modal for new bike
+        if (bikeAddBtn) {
+            bikeAddBtn.addEventListener('click', () => {
+                resetBikeModal();
+                bikeModal.classList.remove('hidden');
+            });
+        }
+
+        // Close modal
+        if (bikeModalCloseBtn) {
+            bikeModalCloseBtn.addEventListener('click', () => {
+                bikeModal.classList.add('hidden');
+                resetBikeModal();
+            });
+        }
+
+        // Close on overlay click
+        bikeModal.addEventListener('click', (e) => {
+            if (e.target === bikeModal) {
+                bikeModal.classList.add('hidden');
+                resetBikeModal();
+            }
+        });
+
+        // Step navigation
+        if (bikePrevBtn) {
+            bikePrevBtn.addEventListener('click', () => {
+                if (currentBikeStep > 1) showBikeStep(currentBikeStep - 1);
+            });
+        }
+
+        if (bikeNextBtn) {
+            bikeNextBtn.addEventListener('click', () => {
+                // Validation before moving to next step
+                if (currentBikeStep === 1) {
+                    if (!bikeCodeInput.value.trim()) {
+                        alert('Пожалуйста, укажите код велосипеда');
+                        return;
+                    }
+                    if (!bikeModelInput.value.trim()) {
+                        alert('Пожалуйста, укажите модель велосипеда');
+                        return;
+                    }
+                }
+
+                if (currentBikeStep < 3) showBikeStep(currentBikeStep + 1);
+            });
+        }
+
+        // Save bike
+        if (bikeSaveBtn) {
+            bikeSaveBtn.addEventListener('click', async () => {
+                try {
+                    toggleButtonLoading(bikeSaveBtn, true, 'Сохранить велосипед', 'Сохранение...');
+
+                    const bikeData = {
+                        bike_code: bikeCodeInput.value.trim(),
+                        model_name: bikeModelInput.value.trim(),
+                        city: bikeCitySelect.value,
+                        status: bikeStatusSelect.value,
+                        frame_number: bikeFrameNumberInput.value.trim() || null,
+                        registration_number: bikeRegistrationNumberInput.value.trim() || null,
+                        iot_device_id: bikeIotDeviceIdInput.value.trim() || null,
+                        additional_equipment: bikeAdditionalEquipmentInput.value.trim() || null,
+                        tariff_id: bikeTariffSelect.value || null
+                    };
+
+                    let result;
+                    if (editingBikeId) {
+                        result = await supabase.from('bikes').update(bikeData).eq('id', editingBikeId);
+                    } else {
+                        result = await supabase.from('bikes').insert([bikeData]);
+                    }
+
+                    if (result.error) throw result.error;
+
+                    alert(editingBikeId ? 'Велосипед успешно обновлен' : 'Велосипед успешно создан');
+                    bikeModal.classList.add('hidden');
+                    resetBikeModal();
+                    await loadBikes();
+
+                } catch (err) {
+                    alert('Ошибка сохранения велосипеда: ' + err.message);
+                } finally {
+                    toggleButtonLoading(bikeSaveBtn, false, 'Сохранить велосипед', 'Сохранение...');
+                }
+            });
+        }
+
+        // Edit bike function (will be called from table)
+        window.editBikeModal = async function (id) {
+            try {
+                const { data, error } = await supabase.from('bikes').select('*').eq('id', id).single();
+                if (error) throw error;
+
+                editingBikeId = id;
+                bikeModalTitle.textContent = 'Редактировать велосипед';
+                bikeIdInput.value = id;
+                bikeCodeInput.value = data.bike_code || '';
+                bikeModelInput.value = data.model_name || '';
+                bikeCitySelect.value = data.city || 'Воронеж';
+                bikeStatusSelect.value = data.status || 'available';
+                bikeFrameNumberInput.value = data.frame_number || '';
+                bikeRegistrationNumberInput.value = data.registration_number || '';
+                bikeIotDeviceIdInput.value = data.iot_device_id || '';
+                bikeAdditionalEquipmentInput.value = data.additional_equipment || '';
+                bikeTariffSelect.value = data.tariff_id || '';
+
+                showBikeStep(1);
+                bikeModal.classList.remove('hidden');
+
+            } catch (err) {
+                alert('Ошибка загрузки велосипеда: ' + err.message);
+            }
+        };
     }
 
     // --- Page Transitions ---

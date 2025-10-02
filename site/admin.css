@@ -291,6 +291,7 @@ body {
 /* Different slide directions for variety */
 #dashboard-main-section:not(.hidden) {
   transform: translateX(0) scale(1);
+  animation: slide-in-from-left 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 #assignments-section:not(.hidden) {
@@ -443,16 +444,211 @@ body {
   letter-spacing: .2px;
 }
 
+/* Dashboard header info styles */
+.dashboard-header-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.95rem;
+}
+
+.dashboard-time {
+  color: var(--dark-green);
+  font-weight: 700;
+  font-size: 1.3rem;
+}
+
+.dashboard-time::after {
+  content: '|';
+  margin-left: 12px;
+  color: #ccc;
+  font-weight: 400;
+}
+
+.dashboard-location {
+  color: var(--dark-green);
+  font-weight: 700;
+  font-size: 1.3rem;
+}
+
+/* Dashboard Grid Layout */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 24px;
+  margin-top: 20px;
+}
+
+.dashboard-column {
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, var(--dark-green) 0%, #0a453c 100%);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--shadow-hover);
+  min-height: 600px;
+}
+
+.dashboard-column-wide {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.dashboard-section-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 12px;
+}
+
+.dashboard-stats-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dashboard-stat-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  transition: all 0.2s ease;
+}
+
+.dashboard-stat-item:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-stat-label {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+}
+
+.dashboard-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  min-width: 40px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-stat-value.accent {
+  color: white;
+}
+
+.dashboard-stat-value.warning {
+  color: white;
+}
+
+.dashboard-stat-value.danger {
+  color: white;
+}
+
+/* Revenue Card */
+.dashboard-revenue-card {
+  background: linear-gradient(135deg, var(--dark-green) 0%, #0a453c 100%);
+  border-radius: 16px;
+  padding: 24px;
+  color: white;
+  box-shadow: var(--shadow-hover);
+}
+
+.revenue-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.revenue-title {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  font-weight: 500;
+}
+
+.revenue-amount {
+  font-size: 2.2rem;
+  font-weight: 700;
+}
+
+.revenue-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.revenue-stat-item {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 12px 16px;
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+}
+
+.revenue-stat-label {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  margin-bottom: 4px;
+}
+
+.revenue-stat-value {
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+/* Chart Card */
+.dashboard-chart-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: var(--shadow-soft);
+}
+
+.chart-header {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--dark-green);
+  margin-bottom: 16px;
+}
+
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Section toolbar styles */
+.section-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 /* Toolbar input with focus animation */
 .toolbar-input {
-  height: 40px;
-  padding: 0 12px;
+  padding: 12px 16px;
   border-radius: 12px;
   border: 1px solid var(--border);
   background: var(--surface-2);
   color: var(--text);
   font-size: .95rem;
+  font-weight: 600;
   outline: none;
+  width: auto;
+  min-width: 200px;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
 }
 
@@ -622,14 +818,10 @@ body {
 .admin-table {
   width: 100%;
   border-collapse: separate;
-  border-spacing: 0;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  overflow: hidden;
+  border-spacing: 0 4px;
+  background: transparent;
   margin-bottom: 20px;
   table-layout: fixed;
-  box-shadow: var(--shadow-soft);
 }
 
 .admin-table th,
@@ -638,6 +830,7 @@ body {
   padding: 12px 14px;
   font-size: .95rem;
   transition: background var(--transition-fast);
+  background: var(--surface);
 }
 
 .admin-table thead th {
@@ -646,9 +839,57 @@ body {
   color: var(--text);
 }
 
+.admin-table thead th:first-child {
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
+}
+
+.admin-table thead th:last-child {
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
 .admin-table tbody tr {
-  border-top: 1px solid var(--border);
   transition: transform var(--transition-fast), background var(--transition-fast);
+  border-bottom: none;
+}
+
+.admin-table tbody tr td {
+  border-bottom: 1px solid #d1d5db;
+}
+
+.admin-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Разделители для таблицы тарифов */
+#tariffs-table tbody tr {
+  border-bottom: none !important;
+}
+
+#tariffs-table tbody tr td {
+  padding-top: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #d1d5db;
+}
+
+#tariffs-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+#tariffs-table tbody tr td:first-child,
+#tariffs-table tbody tr td:last-child {
+  border-radius: 0;
+}
+
+.admin-table tbody tr td:first-child {
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
+}
+
+.admin-table tbody tr td:last-child {
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
 }
 
 .admin-table tbody tr:hover {
@@ -990,6 +1231,48 @@ select:focus::placeholder {
 }
 
 /* --- КОНЕЦ УНИВЕРСАЛЬНЫХ СТИЛЕЙ --- */
+
+/* Battery selection list styles */
+#battery-select-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 10px;
+  background: var(--surface-2);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.battery-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.battery-checkbox-item:hover {
+  background: var(--card-bg);
+  border-color: var(--accent);
+  transform: translateX(4px);
+}
+
+.battery-checkbox-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.battery-checkbox-item span {
+  font-size: 15px;
+  font-weight: 500;
+}
 
 /* Специальные стили для модалки клиента */
 #client-info-overlay .modal {
@@ -1897,7 +2180,7 @@ Step-by-step return process styles */
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #e0e0e0;
+  background: var(--progress-bar-bg);
   color: #999;
   display: flex;
   align-items: center;
@@ -1908,9 +2191,9 @@ Step-by-step return process styles */
 }
 
 .step-circle.active {
-  background: var(--primary-green);
+  background: var(--icon-green);
   color: white;
-  box-shadow: 0 2px 8px rgba(38, 185, 153, 0.3);
+  box-shadow: 0 2px 8px rgba(8, 56, 48, 0.15);
 }
 
 .step-circle.completed {
@@ -1926,11 +2209,12 @@ Step-by-step return process styles */
 }
 
 .step-indicator.active .step-label {
-  color: var(--primary-green);
+  color: var(--dark-green);
   font-weight: 600;
 }
 
-.return-step {
+.return-step,
+.battery-step {
   animation: fadeIn 0.3s ease;
 }
 
@@ -1949,7 +2233,7 @@ Step-by-step return process styles */
 .radio-card {
   display: block;
   padding: 15px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--progress-bar-bg);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1957,8 +2241,8 @@ Step-by-step return process styles */
 }
 
 .radio-card:hover {
-  border-color: var(--primary-green);
-  background: #f8fffe;
+  border-color: var(--icon-green);
+  background: var(--card-bg);
 }
 
 .radio-card input[type="radio"] {
@@ -1966,13 +2250,13 @@ Step-by-step return process styles */
 }
 
 .radio-card input[type="radio"]:checked + .radio-card-content {
-  color: var(--primary-green);
+  color: var(--dark-green);
 }
 
 .radio-card:has(input[type="radio"]:checked) {
-  border-color: var(--primary-green);
-  background: #f0fdf9;
-  box-shadow: 0 2px 8px rgba(38, 185, 153, 0.15);
+  border-color: var(--icon-green);
+  background: var(--light-green-bg);
+  box-shadow: 0 2px 8px rgba(8, 56, 48, 0.08);
 }
 
 .radio-card-content {
@@ -1992,5 +2276,60 @@ Step-by-step return process styles */
 }
 
 .radio-card:has(input[type="radio"]:checked) .radio-card-content strong {
-  color: var(--primary-green);
+  color: var(--dark-green);
+}
+
+
+/* Tariff extensions list styles */
+.extensions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.extension-item {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--progress-bar-bg);
+  border-radius: 8px;
+}
+
+.extension-item input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--progress-bar-bg);
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.extension-item button {
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid var(--progress-bar-bg);
+  border-radius: 6px;
+  cursor: pointer;
+  color: #666;
+  transition: all 0.2s ease;
+}
+
+.extension-item button:hover {
+  background: #f5f5f5;
+  border-color: #999;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
 }

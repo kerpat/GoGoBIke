@@ -1132,6 +1132,56 @@ body:has(.map-page-container) #map {
   background-color: var(--white);
 }
 
+/* === СТИЛИ ДЛЯ ВЫБОРА ГОРОДА === */
+.city-selection-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.city-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  background: #f7faf7;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.city-option:hover {
+  background: #e8f5e9;
+  transform: translateX(4px);
+}
+
+.city-option.selected {
+  background: #e8f5e9;
+  border-color: var(--icon-green);
+}
+
+.city-option svg:first-child {
+  color: var(--icon-green);
+  flex-shrink: 0;
+}
+
+.city-option span {
+  flex: 1;
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--dark-green);
+}
+
+.city-option .city-check {
+  color: var(--icon-green);
+  flex-shrink: 0;
+}
+
+.city-option .city-check.hidden {
+  display: none;
+}
+
 .btn-sbp {
   display: flex;
   justify-content: center;

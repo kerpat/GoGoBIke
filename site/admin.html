@@ -13,25 +13,6 @@
   <link rel="stylesheet" href="blend.css">
   <link rel="stylesheet" href="admin.css">
   <style>
-    #tariff-form .form-group {
-      margin-bottom: 15px;
-    }
-
-    #tariff-form textarea {
-      width: 100%;
-      padding: 12px;
-      border: 1px solid var(--progress-bar-bg);
-      border-radius: 8px;
-      font-size: 0.95rem;
-      resize: vertical;
-      min-height: 80px;
-    }
-
-    #tariff-form input[type="text"],
-    #tariff-form input[type="number"] {
-      margin-bottom: 0;
-    }
-
     /* Map container styles */
     #admin-map-container {
       width: 100%;
@@ -120,7 +101,7 @@
         <button type="button" data-section="payments">Платежи</button>
         <button type="button" data-section="bikes">Велосипеды</button>
         <button type="button" data-section="batteries">Аккумуляторы</button>
-        <button type="button" data-section="templates">Шаблоны</button>
+        <button type="button" data-section="templates" class="hidden">Шаблоны</button>
         <button type="button" data-section="admin-map">Карта</button>
         <a href="admin_support.html" class="admin-nav-link-button">
           <button type="button">Поддержка</button>
@@ -133,18 +114,47 @@
         <section id="dashboard-main-section" class="admin-section">
           <div class="section-header">
             <h2>Панель мониторинга</h2>
+            <div class="dashboard-header-info">
+              <div class="dashboard-time" id="dashboard-time">Загрузка...</div>
+              <div class="dashboard-location" id="dashboard-location">Воронеж</div>
+            </div>
           </div>
 
-          <div class="info-cards" id="dashboard-metrics">
-            <!-- Bike stats will be loaded here by JS -->
-          </div>
+          <!-- Dashboard Grid Layout -->
+          <div class="dashboard-grid">
+            <!-- Left Column: Main Stats -->
+            <div class="dashboard-column">
+              <div class="dashboard-section-title">Велосипеды</div>
+              <div class="dashboard-stats-group" id="dashboard-bikes">
+                <!-- Bike stats will be loaded here -->
+              </div>
 
-          <h3 style="margin-top: 30px;">Доход по дням, ₽</h3>
-          <div class="chart-container" style="margin-top: 20px;">
-            <canvas id="payments-chart"></canvas>
+              <div class="dashboard-section-title" style="margin-top: 24px;">Операции</div>
+              <div class="dashboard-stats-group" id="dashboard-operations">
+                <!-- Operations stats will be loaded here -->
+              </div>
+            </div>
+
+            <!-- Right Column: Revenue & Chart -->
+            <div class="dashboard-column-wide">
+              <div class="dashboard-revenue-card" id="dashboard-revenue">
+                <div class="revenue-header">
+                  <div class="revenue-title">Доход за неделю</div>
+                  <div class="revenue-amount" id="weekly-income">Загрузка...</div>
+                </div>
+                <div class="revenue-stats" id="revenue-breakdown">
+                  <!-- Revenue breakdown will be loaded here -->
+                </div>
+              </div>
+
+              <div class="dashboard-chart-card">
+                <div class="chart-header">Доход по дням</div>
+                <div class="chart-container" style="height: 280px;">
+                  <canvas id="payments-chart"></canvas>
+                </div>
+              </div>
+            </div>
           </div>
-          <h3 style="margin-top: 30px;">Доход за неделю</h3>
-          <div id="weekly-income" style="margin-top: 20px; font-size: 1.2rem; font-weight: 600;">Загрузка...</div>
         </section>
 
         <!-- Assignments -->
@@ -213,48 +223,6 @@
             </thead>
             <tbody></tbody>
           </table>
-
-          <h3 id="tariff-form-title">Новый тариф</h3>
-          <form id="tariff-form">
-            <input type="hidden" id="tariff-id">
-            <div class="form-group">
-              <label for="tariff-title">Название тарифа</label>
-              <input type="text" id="tariff-title" placeholder="Название тарифа" required>
-            </div>
-            <div class="form-group">
-              <label for="tariff-short-description">Краткое описание (для карточки тарифа)</label>
-              <textarea id="tariff-short-description" placeholder="Например: Идеально для долгих поездок по городу"
-                rows="2"></textarea>
-            </div>
-            <div class="form-group">
-              <label for="tariff-description">Полное описание (для договора)</label>
-              <textarea id="tariff-description"
-                placeholder="Полное юридическое описание, которое будет вставлено в договор" rows="4"></textarea>
-            </div>
-            <div class="form-group">
-              <label class="checkbox-label"><input type="checkbox" id="tariff-active" checked> Активен</label>
-            </div>
-
-            <div class="form-group">
-              <label for="contract-template-select">Шаблон договора:</label>
-              <select id="contract-template-select">
-                <option value="">— Не выбран —</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <div id="tariff-extensions-container" class="tariff-extensions-container">
-                <label>Стоимость и длительность (первая строка - основная):</label>
-                <div id="extensions-list" class="extensions-list"></div>
-                <button type="button" id="add-extension-btn" class="admin-small-btn">Добавить продление</button>
-              </div>
-            </div>
-
-            <div class="form-actions">
-              <button type="submit">Сохранить</button>
-              <button type="button" id="tariff-cancel-btn" class="hidden">Отмена</button>
-            </div>
-          </form>
         </section>
 
         <!-- Шаблоны договоров -->
@@ -416,79 +384,12 @@
                 <th>Модель</th>
                 <th>Город</th>
                 <th>Статус</th>
-                <th>Ремонт</th> <!-- <-- НОВАЯ КОЛОНКА -->
+                <th>Ремонт</th>
                 <th>Действия</th>
               </tr>
             </thead>
             <tbody></tbody>
           </table>
-
-          <h3 id="bike-form-title" class="hidden" style="margin-top: 30px;">Новый велосипед</h3>
-          <form id="bike-form" class="hidden">
-            <input type="hidden" id="bike-id">
-            <div class="form-group">
-              <label for="bike-code">Код велосипеда (уникальный)</label>
-              <input type="text" id="bike-code" placeholder="Например: 00004" required>
-            </div>
-            <div class="form-group">
-              <label for="bike-model">Модель</label>
-              <input type="text" id="bike-model" placeholder="Например: Trek FX 2" required>
-            </div>
-            <div class="form-group">
-              <label for="bike-city">Город</label>
-              <select id="bike-city" class="form-control" required>
-                <option value="Воронеж">Воронеж</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="bike-status">Статус</label>
-              <select id="bike-status" class="form-control" required>
-                <option value="available">Свободен</option>
-                <option value="rented">В аренде</option>
-                <option value="reserved">Зарезервирован</option>
-                <option value="in_service">На обслуживании</option>
-                <option value="maintenance">Обслуживание</option>
-                <option value="out_of_order">Неисправен</option>
-                <option value="unavailable">Недоступен</option>
-              </select>
-            </div>
-
-            <!-- НОВЫЙ БЛОК: ВЫБОР ТАРИФА -->
-            <div class="form-group">
-              <label for="bike-tariff-select">Тариф</label>
-              <select id="bike-tariff-select" class="form-control">
-                <option value="">-- Не выбран --</option>
-                <!-- Опции будут загружены через JS -->
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="bike-frame-number">Номер рамы</label>
-              <input type="text" id="bike-frame-number" placeholder="Например: FR123456">
-            </div>
-            <div class="form-group">
-              <label for="bike-battery-numbers">Номера аккумуляторов (через запятую)</label>
-              <input type="text" id="bike-battery-numbers" placeholder="Например: BAT001, BAT002">
-            </div>
-            <div class="form-group">
-              <label for="bike-registration-number">Регистрационный номер</label>
-              <input type="text" id="bike-registration-number" placeholder="Например: А123БВ77">
-            </div>
-            <div class="form-group">
-              <label for="bike-iot-device-id">Номер IOT-трекера</label>
-              <input type="text" id="bike-iot-device-id" placeholder="Например: IOT987654">
-            </div>
-            <div class="form-group">
-              <label for="bike-additional-equipment">Дополнительное оборудование</label>
-              <textarea id="bike-additional-equipment" placeholder="Например: Замок, держатель для бутылки"
-                rows="3"></textarea>
-            </div>
-
-            <div class="form-actions">
-              <button type="submit">Сохранить</button>
-              <button type="button" id="bike-cancel-btn">Отмена</button>
-            </div>
-          </form>
         </section>
 
         <!-- Карта велосипедов -->
@@ -527,36 +428,6 @@
             </thead>
             <tbody></tbody>
           </table>
-
-          <h3 id="battery-form-title" class="hidden" style="margin-top: 30px;">Новый аккумулятор</h3>
-          <form id="battery-form" class="hidden">
-            <input type="hidden" id="battery-id">
-            <div class="form-group">
-              <label for="battery-serial-number">Серийный номер (уникальный)</label>
-              <input type="text" id="battery-serial-number" placeholder="Например: АКБ-001" required>
-            </div>
-            <div class="form-group">
-              <label for="battery-capacity">Мощность (Ватт-часы)</label>
-              <input type="number" id="battery-capacity" placeholder="Например: 1000">
-            </div>
-            <div class="form-group">
-              <label for="battery-description">Описание</label>
-              <textarea id="battery-description" placeholder="Любые заметки" rows="2"></textarea>
-            </div>
-            <div class="form-group">
-              <label for="battery-status">Статус</label>
-              <select id="battery-status" class="form-control" required>
-                <option value="available">Свободен</option>
-                <option value="in_use">В аренде</option>
-                <option value="charging">На зарядке</option>
-                <option value="maintenance">На обслуживании</option>
-              </select>
-            </div>
-            <div class="form-actions">
-              <button type="submit">Сохранить</button>
-              <button type="button" id="battery-cancel-btn">Отмена</button>
-            </div>
-          </form>
         </section>
 
 
@@ -667,6 +538,14 @@
           </div>
 
           <div class="form-group">
+            <label for="rental-edit-batteries">Аккумуляторы</label>
+            <div id="rental-edit-batteries-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;">
+              <!-- Список выбранных АКБ будет здесь -->
+            </div>
+            <button type="button" id="rental-edit-change-batteries-btn" class="btn btn-secondary" style="width: 100%;">Изменить АКБ</button>
+          </div>
+
+          <div class="form-group">
             <label for="rental-edit-end-date">Дата окончания</label>
             <input type="datetime-local" id="rental-edit-end-date" class="form-control">
           </div>
@@ -699,10 +578,11 @@
       </div>
       <div class="modal-body">
         <input type="hidden" id="return-process-rental-id">
-        
+
         <!-- Индикатор шагов -->
         <div style="display: flex; justify-content: space-between; margin-bottom: 25px; position: relative;">
-          <div style="position: absolute; top: 15px; left: 0; right: 0; height: 2px; background: #e0e0e0; z-index: 0;"></div>
+          <div style="position: absolute; top: 15px; left: 0; right: 0; height: 2px; background: #e0e0e0; z-index: 0;">
+          </div>
           <div class="step-indicator" data-step="1">
             <div class="step-circle active">1</div>
             <div class="step-label">Статус велосипеда</div>
@@ -725,14 +605,14 @@
               <label class="radio-card">
                 <input type="radio" name="bike-next-status" value="available" checked>
                 <div class="radio-card-content">
-                  <strong>✅ В свободные</strong>
+                  <strong>В свободные</strong>
                   <span>Велосипед в хорошем состоянии, готов к аренде</span>
                 </div>
               </label>
               <label class="radio-card">
                 <input type="radio" name="bike-next-status" value="in_service">
                 <div class="radio-card-content">
-                  <strong>🔧 В ремонт</strong>
+                  <strong>В ремонт</strong>
                   <span>Требуется обслуживание или ремонт</span>
                 </div>
               </label>
@@ -753,7 +633,8 @@
 Царапина на раме (левая сторона)
 Сломан звонок
 Потертость на седле"></textarea>
-            <small style="color: #666; margin-top: 5px; display: block;">Эти данные будут добавлены в акт приема-передачи</small>
+            <small style="color: #666; margin-top: 5px; display: block;">Эти данные будут добавлены в акт
+              приема-передачи</small>
           </div>
         </div>
 
@@ -765,14 +646,14 @@
               <label class="radio-card">
                 <input type="radio" name="charge-damage" value="no" checked>
                 <div class="radio-card-content">
-                  <strong>❌ Нет</strong>
+                  <strong>Нет</strong>
                   <span>Завершить приемку без выставления счета</span>
                 </div>
               </label>
               <label class="radio-card">
                 <input type="radio" name="charge-damage" value="yes">
                 <div class="radio-card-content">
-                  <strong>💰 Да, выставить счет</strong>
+                  <strong>Да, выставить счет</strong>
                   <span>Списать сумму за повреждения</span>
                 </div>
               </label>
@@ -780,9 +661,11 @@
           </div>
           <div class="form-group hidden" id="damage-amount-group" style="margin-top: 15px;">
             <label for="damage-amount">Сумма к списанию (₽)</label>
-            <input type="number" id="damage-amount" class="form-control" placeholder="Например: 5000" min="0" step="100">
+            <input type="number" id="damage-amount" class="form-control" placeholder="Например: 5000" min="0"
+              step="100">
             <label for="damage-description" style="margin-top: 10px;">Описание</label>
-            <input type="text" id="damage-description" class="form-control" placeholder="Например: Ремонт поврежденной рамы">
+            <input type="text" id="damage-description" class="form-control"
+              placeholder="Например: Ремонт поврежденной рамы">
           </div>
         </div>
 
@@ -791,6 +674,264 @@
         <button type="button" id="return-prev-btn" class="btn btn-secondary hidden">← Назад</button>
         <button type="button" id="return-next-btn" class="btn btn-primary">Далее →</button>
         <button type="button" id="finalize-return-btn" class="btn btn-primary hidden">Завершить приемку</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно добавления/редактирования тарифа (Step-by-Step) -->
+  <div id="tariff-modal" class="overlay hidden">
+    <div class="modal" style="max-width: 700px;">
+      <div class="modal-header">
+        <h3 id="tariff-modal-title">Новый тариф</h3>
+        <button id="tariff-modal-close-btn" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="tariff-id">
+
+        <!-- Индикатор шагов -->
+        <div style="display: flex; justify-content: space-between; margin-bottom: 25px; position: relative;">
+          <div
+            style="position: absolute; top: 15px; left: 0; right: 0; height: 2px; background: var(--progress-bar-bg); z-index: 0;">
+          </div>
+          <div class="step-indicator" data-step="1">
+            <div class="step-circle active">1</div>
+            <div class="step-label">Основная информация</div>
+          </div>
+          <div class="step-indicator" data-step="2">
+            <div class="step-circle">2</div>
+            <div class="step-label">Стоимость</div>
+          </div>
+          <div class="step-indicator" data-step="3">
+            <div class="step-circle">3</div>
+            <div class="step-label">Настройки</div>
+          </div>
+        </div>
+
+        <!-- Шаг 1: Основная информация -->
+        <div id="tariff-step-1" class="tariff-step">
+          <h4 style="margin-bottom: 15px;">Основная информация</h4>
+          <div class="form-group">
+            <label for="tariff-title">Название тарифа</label>
+            <input type="text" id="tariff-title" class="form-control" placeholder="Например: Электроскутеры U2"
+              required>
+          </div>
+          <div class="form-group">
+            <label for="tariff-short-description">Краткое описание</label>
+            <textarea id="tariff-short-description" class="form-control" rows="3" placeholder="Краткое описание для карточки тарифа
+Например: Идеально для долгих поездок по городу"></textarea>
+            <small style="color: #666; margin-top: 5px; display: block;">Это описание будет показано в карточке
+              тарифа</small>
+          </div>
+        </div>
+
+        <!-- Шаг 2: Стоимость и длительность -->
+        <div id="tariff-step-2" class="tariff-step hidden">
+          <h4 style="margin-bottom: 15px;">Стоимость и длительность</h4>
+          <p style="color: #666; margin-bottom: 15px;">Первая строка - основной период аренды</p>
+          <div id="extensions-list" class="extensions-list"></div>
+          <button type="button" id="add-extension-btn" class="btn btn-secondary" style="margin-top: 10px;">+ Добавить
+            продление</button>
+        </div>
+
+        <!-- Шаг 3: Настройки -->
+        <div id="tariff-step-3" class="tariff-step hidden">
+          <h4 style="margin-bottom: 15px;">Активность тарифа</h4>
+          <div class="form-group"
+            style="padding: 20px; background: var(--card-bg); border-radius: 12px; border: 1px solid var(--progress-bar-bg);">
+            <label class="checkbox-label"
+              style="display: flex; align-items: center; gap: 12px; cursor: pointer; margin: 0;">
+              <input type="checkbox" id="tariff-active" checked style="width: 20px; height: 20px; cursor: pointer;">
+              <div>
+                <div style="font-weight: 600; color: var(--dark-green); margin-bottom: 4px;">Тариф активен</div>
+                <div style="font-size: 13px; color: #666;">Только активные тарифы видны клиентам в приложении</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="tariff-prev-btn" class="btn btn-secondary hidden">← Назад</button>
+        <button type="button" id="tariff-next-btn" class="btn btn-primary">Далее →</button>
+        <button type="button" id="tariff-save-btn" class="btn btn-primary hidden">Сохранить тариф</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно добавления/редактирования велосипеда (Step-by-Step) -->
+  <div id="bike-modal" class="overlay hidden">
+    <div class="modal" style="max-width: 700px;">
+      <div class="modal-header">
+        <h3 id="bike-modal-title">Новый велосипед</h3>
+        <button id="bike-modal-close-btn" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="bike-id">
+        
+        <!-- Индикатор шагов -->
+        <div style="display: flex; justify-content: space-between; margin-bottom: 25px; position: relative;">
+          <div style="position: absolute; top: 15px; left: 0; right: 0; height: 2px; background: var(--progress-bar-bg); z-index: 0;"></div>
+          <div class="step-indicator" data-step="1">
+            <div class="step-circle active">1</div>
+            <div class="step-label">Основная информация</div>
+          </div>
+          <div class="step-indicator" data-step="2">
+            <div class="step-circle">2</div>
+            <div class="step-label">Технические данные</div>
+          </div>
+          <div class="step-indicator" data-step="3">
+            <div class="step-circle">3</div>
+            <div class="step-label">Статус и оборудование</div>
+          </div>
+        </div>
+
+        <!-- Шаг 1: Основная информация -->
+        <div id="bike-step-1" class="bike-step">
+          <h4 style="margin-bottom: 20px;">Основная информация</h4>
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label for="bike-code">Код велосипеда</label>
+            <input type="text" id="bike-code" class="form-control" placeholder="Например: 00004" required>
+            <small style="color: #666; margin-top: 5px; display: block;">Уникальный идентификатор велосипеда</small>
+          </div>
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label for="bike-model">Модель</label>
+            <input type="text" id="bike-model" class="form-control" placeholder="Например: Trek FX 2" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label for="bike-city">Город</label>
+            <select id="bike-city" class="form-control" required>
+              <option value="Воронеж">Воронеж</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label for="bike-tariff-select">Тариф</label>
+            <select id="bike-tariff-select" class="form-control">
+              <option value="">— Не выбран —</option>
+            </select>
+            <small style="color: #666; margin-top: 5px; display: block;">Тариф можно изменить позже</small>
+          </div>
+        </div>
+
+        <!-- Шаг 2: Технические данные -->
+        <div id="bike-step-2" class="bike-step hidden">
+          <h4 style="margin-bottom: 20px;">Технические данные</h4>
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label for="bike-frame-number">Номер рамы</label>
+            <input type="text" id="bike-frame-number" class="form-control" placeholder="Например: FR123456">
+          </div>
+
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label for="bike-registration-number">Регистрационный номер</label>
+            <input type="text" id="bike-registration-number" class="form-control" placeholder="Например: А123БВ77">
+          </div>
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label for="bike-iot-device-id">Номер IOT-трекера</label>
+            <input type="text" id="bike-iot-device-id" class="form-control" placeholder="Например: IOT987654">
+          </div>
+        </div>
+
+        <!-- Шаг 3: Статус и оборудование -->
+        <div id="bike-step-3" class="bike-step hidden">
+          <h4 style="margin-bottom: 20px;">Статус и дополнительное оборудование</h4>
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label for="bike-status">Статус велосипеда</label>
+            <select id="bike-status" class="form-control" required>
+              <option value="available">Свободен</option>
+              <option value="rented">В аренде</option>
+              <option value="reserved">Зарезервирован</option>
+              <option value="in_service">На обслуживании</option>
+              <option value="maintenance">Обслуживание</option>
+              <option value="out_of_order">Неисправен</option>
+              <option value="unavailable">Недоступен</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label for="bike-additional-equipment">Дополнительное оборудование</label>
+            <textarea id="bike-additional-equipment" class="form-control" rows="4" placeholder="Например: Замок, держатель для бутылки, корзина"></textarea>
+            <small style="color: #666; margin-top: 5px; display: block;">Укажите всё дополнительное оборудование</small>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="bike-prev-btn" class="btn btn-secondary hidden">← Назад</button>
+        <button type="button" id="bike-next-btn" class="btn btn-primary">Далее →</button>
+        <button type="button" id="bike-save-btn" class="btn btn-primary hidden">Сохранить велосипед</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно добавления/редактирования аккумулятора (Step-by-Step) -->
+  <div id="battery-modal" class="overlay hidden">
+    <div class="modal" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 id="battery-modal-title">Новый аккумулятор</h3>
+        <button id="battery-modal-close-btn" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="battery-id">
+        
+        <!-- Индикатор шагов -->
+        <div style="display: flex; justify-content: space-between; margin-bottom: 25px; position: relative;">
+          <div style="position: absolute; top: 15px; left: 0; right: 0; height: 2px; background: var(--progress-bar-bg); z-index: 0;"></div>
+          <div class="step-indicator" data-step="1">
+            <div class="step-circle active">1</div>
+            <div class="step-label">Основная информация</div>
+          </div>
+          <div class="step-indicator" data-step="2">
+            <div class="step-circle">2</div>
+            <div class="step-label">Технические данные</div>
+          </div>
+          <div class="step-indicator" data-step="3">
+            <div class="step-circle">3</div>
+            <div class="step-label">Статус</div>
+          </div>
+        </div>
+
+        <!-- Шаг 1: Основная информация -->
+        <div id="battery-step-1" class="battery-step">
+          <h4 style="margin-bottom: 20px;">Основная информация</h4>
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label for="battery-serial-number">Серийный номер</label>
+            <input type="text" id="battery-serial-number" class="form-control" placeholder="Например: АКБ-001" required>
+            <small style="color: #666; margin-top: 5px; display: block;">Уникальный идентификатор аккумулятора</small>
+          </div>
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label for="battery-description">Описание</label>
+            <textarea id="battery-description" class="form-control" rows="3" placeholder="Любые заметки об аккумуляторе"></textarea>
+          </div>
+        </div>
+
+        <!-- Шаг 2: Технические данные -->
+        <div id="battery-step-2" class="battery-step hidden">
+          <h4 style="margin-bottom: 20px;">Технические характеристики</h4>
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label for="battery-capacity">Мощность (Ватт-часы)</label>
+            <input type="number" id="battery-capacity" class="form-control" placeholder="Например: 1000" min="0" step="10">
+            <small style="color: #666; margin-top: 5px; display: block;">Емкость аккумулятора в Wh</small>
+          </div>
+        </div>
+
+        <!-- Шаг 3: Статус -->
+        <div id="battery-step-3" class="battery-step hidden">
+          <h4 style="margin-bottom: 20px;">Статус аккумулятора</h4>
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label for="battery-status">Текущий статус</label>
+            <select id="battery-status" class="form-control" required>
+              <option value="available">Свободен</option>
+              <option value="in_use">В аренде</option>
+              <option value="charging">На зарядке</option>
+              <option value="maintenance">На обслуживании</option>
+            </select>
+            <small style="color: #666; margin-top: 5px; display: block;">Статус можно изменить позже</small>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="battery-prev-btn" class="btn btn-secondary hidden">← Назад</button>
+        <button type="button" id="battery-next-btn" class="btn btn-primary">Далее →</button>
+        <button type="button" id="battery-save-btn" class="btn btn-primary hidden">Сохранить аккумулятор</button>
       </div>
     </div>
   </div>
@@ -1113,7 +1254,8 @@
           <p>Выберите один или несколько свободных аккумуляторов:</p>
           <!-- ВОТ СЮДА ВСТАВЬ ПОИСК -->
           <div class="form-group" style="margin-bottom: 15px;">
-            <input type="search" id="battery-search-in-modal" class="form-control" placeholder="Поиск по серийному номеру...">
+            <input type="search" id="battery-search-in-modal" class="form-control"
+              placeholder="Поиск по серийному номеру...">
           </div>
           <div id="battery-select-list"
             style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px; padding: 10px;">
@@ -1127,29 +1269,31 @@
       </div>
     </div>
   </div>
-</div>
+  </div>
 
-<!-- Модальное окно настройки стоимости бронирования -->
-<div id="booking-cost-modal" class="overlay hidden">
-  <div class="modal" style="max-width: 420px;">
-    <div class="modal-header">
-      <h3>Стоимость бронирования</h3>
-      <button id="booking-cost-cancel-btn" class="close-btn">&times;</button>
-    </div>
-    <div class="modal-body">
-      <form id="booking-cost-form">
-        <div class="form-group">
-          <label for="booking-cost-input">Цена за 2 часа брони (₽)</label>
-          <input type="number" id="booking-cost-input" class="modal-form-input" placeholder="Например: 100" required>
-          <p class="form-hint" style="font-size: 0.8rem; color: #6b6b6b; margin-top: 5px;">Эта сумма будет списана с клиента и зачислена на его внутренний баланс. Если установить 0, бронирование будет бесплатным.</p>
-        </div>
-      </form>
-    </div>
-    <div class="modal-footer">
-      <button type="button" id="booking-cost-save-btn" class="btn btn-primary">Сохранить</button>
+  <!-- Модальное окно настройки стоимости бронирования -->
+  <div id="booking-cost-modal" class="overlay hidden">
+    <div class="modal" style="max-width: 420px;">
+      <div class="modal-header">
+        <h3>Стоимость бронирования</h3>
+        <button id="booking-cost-cancel-btn" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="booking-cost-form">
+          <div class="form-group">
+            <label for="booking-cost-input">Цена за 2 часа брони (₽)</label>
+            <input type="number" id="booking-cost-input" class="modal-form-input" placeholder="Например: 100" required>
+            <p class="form-hint" style="font-size: 0.8rem; color: #6b6b6b; margin-top: 5px;">Эта сумма будет списана с
+              клиента и зачислена на его внутренний баланс. Если установить 0, бронирование будет бесплатным.</p>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="booking-cost-save-btn" class="btn btn-primary">Сохранить</button>
+      </div>
     </div>
   </div>
-</div>
+
 
 </body>
 
