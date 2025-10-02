@@ -162,54 +162,47 @@ async function handleChargeFromBalance({ userId, tariffId, bikeCode, amount, day
 }
 
 async function handleCreatePayment(body) {
-    const { userId, tariffId, amount: amountFromClient, type, rentalId, return_url, bikeCode } = body;
+    const { userId, tariffId, amount: amountFromClient, type, rentalId, return_url, bikeCode, days } = body; // Добавил `days`
     if (!userId) throw new Error('Client ID (userId) is required.');
 
     const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-
     const { data: clientData, error: clientError } = await supabaseAdmin.from('clients').select('phone, balance_rub, yookassa_payment_method_id').eq('id', userId).single();
     if (clientError || !clientData) throw new Error(`Client not found.`);
 
     let amount;
     let description = 'Пополнение баланса GoGoBike';
     let amountToDebitFromBalance = 0;
-
-    // <<< НАЧАЛО ИЗМЕНЕНИЙ >>>
-    let successRedirectUrl; // Новая переменная для URL
+    let successRedirectUrl;
 
     if (tariffId) {
         // --- СЦЕНАРИЙ АРЕНДЫ ---
-        successRedirectUrl = 'https://go-go-b-ike.vercel.app/?rental_success=true';
-        // ... (остальная логика для аренды остается здесь)
+        successRedirectUrl = return_url || 'https://go-go-b-ike.vercel.app/?rental_success=true';
+
+        // <<< ИЗМЕНЕНИЕ 1: ПОЛУЧАЕМ ЦЕНУ ТАРИФА ПРЯМО ЗДЕСЬ >>>
         const { data: tariffData, error: tariffError } = await supabaseAdmin.from('tariffs').select('price_rub').eq('id', tariffId).single();
         if (tariffError || !tariffData) throw new Error('Tariff not found.');
 
+        // <<< ИЗМЕНЕНИЕ 2: ИСПОЛЬЗУЕМ ЦЕНУ ИЗ БАЗЫ, А НЕ ОТ КЛИЕНТА >>>
         const tariffCost = tariffData.price_rub;
         const userBalance = clientData.balance_rub || 0;
         description = `Аренда велосипеда по тарифу`;
-        if (bikeCode) description += ` #${bikeCode}`;
 
         if (userBalance >= tariffCost) {
-            // Если баланса достаточно, мы вообще не должны были сюда попасть.
-            // Фронтенд должен был вызвать `charge-from-balance`. Выбрасываем ошибку.
             throw new Error('Balance is sufficient. Use charge-from-balance endpoint.');
         } else if (userBalance > 0) {
-            // Логика гибридной оплаты
-            amount = tariffCost - userBalance; // Сумма для списания с карты
-            amountToDebitFromBalance = userBalance; // Сумма, которую спишем с баланса через вебхук
+            amount = tariffCost - userBalance;
+            amountToDebitFromBalance = userBalance;
         } else {
-            // Обычная оплата полной стоимости с карты
             amount = tariffCost;
         }
     } else {
         // --- СЦЕНАРИЙ ОБЫЧНОГО ПОПОЛНЕНИЯ ---
-        successRedirectUrl = 'https://go-go-b-ike.vercel.app/?topup_success=true';
+        successRedirectUrl = return_url || 'https://go-go-b-ike.vercel.app/?topup_success=true';
         if (!amountFromClient || amountFromClient <= 0) {
             throw new Error('Invalid amount specified for top-up.');
         }
         amount = Number.parseFloat(amountFromClient);
     }
-    // <<< КОНЕЦ ИЗМЕНЕНИЙ >>>
 
     if (!Number.isFinite(amount) || amount <= 0) {
         throw new Error('Invalid final amount for payment.');
