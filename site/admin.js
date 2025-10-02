@@ -1325,7 +1325,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     .eq('id', clientId);
 
                 if (error) throw error;
-
+        
+                // --- ВОТ ЭТУ СТРОЧКУ НУЖНО ДОБАВИТЬ ---
+                // Отправляем запрос на сервер, чтобы он послал уведомление
+                authedFetch('/api/admin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'notify-verification', userId: clientId, status: newStatus })
+                });
+                // --- КОНЕЦ ДОБАВЛЕНИЯ ---
+        
                 alert('Статус клиента успешно обновлен!');
                 loadClients(); // Перезагружаем список, чтобы увидеть изменения
             } catch (err) {
@@ -2320,7 +2329,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 assignBatteriesRentalIdInput.value = rentalId;
                 console.log('Значение установлено в поле:', assignBatteriesRentalIdInput.value);
 
-                const searchInput = document.getElementById('battery-search-in-modal');
                 searchInput.value = ''; // Сбрасываем поиск при открытии
 
                 searchInput.addEventListener('input', () => {
@@ -2463,6 +2471,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     .update({ status: 'awaiting_contract_signing' })
                     .eq('id', rentalId);
                 if (rentalUpdateError) throw new Error('Ошибка перевода аренды на подписание: ' + rentalUpdateError.message);
+
+                // --- ВОТ ЭТУ СТРОЧКУ НУЖНО ДОБАВИТЬ ---
+                // Отправляем запрос на сервер, чтобы он послал уведомление
+                authedFetch('/api/admin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'notify-battery-assignment', rentalId: rentalId })
+                });
+                // --- КОНЕЦ ДОБАВЛЕНИЯ ---
 
                 alert('Аккумуляторы назначены! Клиент получил уведомление о необходимости подписать договор.');
                 assignBatteriesModal.classList.add('hidden');
