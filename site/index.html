@@ -1339,7 +1339,10 @@
 
             if (bookingSuccess === 'true') {
                 // Показываем уведомление об успешном бронировании
-                showToast(bookingSuccessToast);
+                const bookingToast = document.getElementById('booking-success-toast');
+                if (bookingToast) {
+                    showToast(bookingToast);
+                }
             }
 
             // Обновляем данные пользователя и очищаем URL, если был любой из успешных редиректов
