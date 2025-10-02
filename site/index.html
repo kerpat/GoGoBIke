@@ -2180,6 +2180,7 @@ function initializeMainScreenEventListeners() {
             try {
                 const response = await fetch('/api/payments', {
                     method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         action: 'create-payment',
                         userId: userId,
