@@ -386,8 +386,8 @@
               <tr>
                 <th>Клиент</th>
                 <th>Сумма</th>
-                <th>Метод</th>
-                <th>Описание</th>
+                <th>Тип платежа</th>
+                <th>Способ оплаты</th>
                 <th>Статус</th>
                 <th>Дата</th>
                 <th>Действия</th>
@@ -945,6 +945,19 @@
       </div>
       <div class="modal-footer">
         <button type="button" id="refund-submit-btn" class="btn btn-primary">Выполнить возврат</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно деталей платежа -->
+  <div id="payment-details-modal" class="overlay hidden">
+    <div class="modal" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3>Детали платежа</h3>
+        <button id="payment-details-close-btn" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="payment-details-content"></div>
       </div>
     </div>
   </div>

@@ -426,12 +426,39 @@ document.addEventListener('DOMContentLoaded', () => {
             assignment: {
                 'pending_assignment': { text: 'Аренда', className: 'status-success' },
                 'pending_return': { text: 'Сдача', className: 'status-warning' }
+            },
+            battery: {
+                'available': { text: 'Свободна', className: 'status-success' },
+                'in_use': { text: 'В использовании', className: 'status-warning' },
+                'damaged': { text: 'Повреждена', className: 'status-error' },
+                'maintenance': { text: 'Обслуживание', className: 'status-info' },
+                'unavailable': { text: 'Недоступна', className: 'status-neutral' }
             }
         };
 
         const typeMap = statusMaps[type] || {};
         return typeMap[status] || { text: status || 'Неизвестно', className: 'status-neutral' };
     }
+
+    // Payment type labels for admin panel
+    const paymentTypeLabels = {
+        'rental': 'Аренда',
+        'renewal': 'Продление аренды',
+        'top-up': 'Пополнение баланса',
+        'booking': 'Бронирование',
+        'refund_to_balance': 'Возврат на баланс',
+        'adjustment': 'Корректировка баланса',
+        'balance_debit': 'Списание с баланса',
+        'invoice': 'Оплата по счету'
+    };
+
+    // Payment method labels for admin panel
+    const paymentMethodLabels = {
+        'card': 'Карта',
+        'sbp': 'СБП',
+        'balance': 'Баланс',
+        'yoo_money': 'ЮMoney'
+    };
 
     /**
      * Creates a status badge HTML element
@@ -919,15 +946,101 @@ document.addEventListener('DOMContentLoaded', () => {
     const refundReasonInput = document.getElementById('refund-reason');
     const paymentsTableBody = document.querySelector('#payments-table tbody');
 
+    // --- Payment Details Modal ---
+    const paymentDetailsModal = document.getElementById('payment-details-modal');
+    const paymentDetailsCloseBtn = document.getElementById('payment-details-close-btn');
+    const paymentDetailsContent = document.getElementById('payment-details-content');
+
     if (paymentsTableBody) {
         paymentsTableBody.addEventListener('click', (e) => {
+            // Handle refund button click
             const refundBtn = e.target.closest('.refund-btn');
             if (refundBtn) {
+                e.stopPropagation();
                 const paymentId = refundBtn.dataset.paymentId;
                 const amount = refundBtn.dataset.amount;
                 refundPaymentIdInput.value = paymentId;
                 refundAmountInput.value = amount;
                 refundModal.classList.remove('hidden');
+                return;
+            }
+
+            // Handle row click to show payment details
+            const row = e.target.closest('tr');
+            if (row && row.dataset.paymentData) {
+                const payment = JSON.parse(row.dataset.paymentData);
+                showPaymentDetails(payment);
+            }
+        });
+    }
+
+    // Function to show payment details modal
+    function showPaymentDetails(payment) {
+        if (!paymentDetailsContent || !paymentDetailsModal) return;
+
+        const typeLabel = paymentTypeLabels[payment.payment_type] || payment.payment_type || '—';
+        const methodLabel = paymentMethodLabels[payment.method] || payment.method || '—';
+        const statusDisplay = getStatusDisplay(payment.status, 'payment');
+        const dateObj = payment.created_at ? new Date(payment.created_at) : null;
+        const dateStr = dateObj ? dateObj.toLocaleString('ru-RU') : '—';
+
+        paymentDetailsContent.innerHTML = `
+            <div class="info-row">
+                <strong>ID платежа:</strong>
+                <span>${payment.id}</span>
+            </div>
+            <div class="info-row">
+                <strong>Клиент:</strong>
+                <span>${payment.client}</span>
+            </div>
+            <div class="info-row">
+                <strong>Сумма:</strong>
+                <span>${payment.amount} ₽</span>
+            </div>
+            <div class="info-row">
+                <strong>Тип платежа:</strong>
+                <span>${typeLabel}</span>
+            </div>
+            <div class="info-row">
+                <strong>Способ оплаты:</strong>
+                <span class="payment-method-badge ${payment.method || ''}">${methodLabel}</span>
+            </div>
+            <div class="info-row">
+                <strong>Статус:</strong>
+                <span class="status-badge ${statusDisplay.className}">${statusDisplay.text}</span>
+            </div>
+            <div class="info-row">
+                <strong>Дата создания:</strong>
+                <span>${dateStr}</span>
+            </div>
+            ${payment.description ? `
+            <div class="info-row">
+                <strong>Описание:</strong>
+                <span>${payment.description}</span>
+            </div>
+            ` : ''}
+            ${payment.yookassa_payment_id ? `
+            <div class="info-row">
+                <strong>ID ЮKassa:</strong>
+                <span>${payment.yookassa_payment_id}</span>
+            </div>
+            ` : ''}
+        `;
+
+        paymentDetailsModal.classList.remove('hidden');
+    }
+
+    // Close payment details modal
+    if (paymentDetailsCloseBtn) {
+        paymentDetailsCloseBtn.addEventListener('click', () => {
+            paymentDetailsModal.classList.add('hidden');
+        });
+    }
+
+    if (paymentDetailsModal) {
+        paymentDetailsModal.addEventListener('click', (e) => {
+            if (e.target === paymentDetailsModal) {
+                paymentDetailsModal.classList.add('hidden');
             }
         });
     }
@@ -1205,7 +1318,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${battery.serial_number}</td>
                     <td>${battery.capacity_wh || '—'}</td>
                     <td>${battery.description || '—'}</td>
-                    <td><span class="status-badge status-neutral">${battery.status}</span></td>
+                    <td>${createStatusBadge(battery.status, 'battery')}</td>
                     <td class="table-actions">
                         <button type="button" class="edit-battery-btn" data-id="${battery.id}">Ред.</button>
                         <button type="button" class="delete-battery-btn" data-id="${battery.id}">Удалить</button>
@@ -1631,25 +1744,16 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const { data, error } = await supabase
                 .from('payments')
-                .select('id, yookassa_payment_id, amount_rub, payment_method_title, payment_type, status, created_at, description, clients (name)')
+                .select('id, yookassa_payment_id, amount_rub, payment_type, method, status, created_at, description, clients (name)')
                 .order('created_at', { ascending: false });
             if (error) throw error;
             tbody.innerHTML = '';
             (data || []).forEach(p => {
-                // Получаем данные для каждой колонки
-                let method = p.payment_method_title || '—';
-                const description = p.description || '—';           // Это "Начало аренды"
-
-                // Улучшенная логика отображения метода оплаты
-                if (p.payment_type === 'balance') {
-                    method = 'С баланса приложения';
-                } else if (p.payment_method_title === 'Saved method') {
-                    method = 'Карта/SBP клиента';
-                } else if (p.payment_method_title && p.payment_method_title !== '—') {
-                    method = p.payment_method_title; // Оставляем как есть для других случаев
-                } else {
-                    method = '—';
-                }
+                // Get payment type label
+                const typeLabel = paymentTypeLabels[p.payment_type] || p.payment_type || '—';
+                
+                // Get payment method label
+                const methodLabel = paymentMethodLabels[p.method] || p.method || '—';
 
                 const actionsCell = (p.status === 'succeeded' && p.status !== 'refunded' && p.yookassa_payment_id && !p.yookassa_payment_id.startsWith('manual'))
                     ? `<button type="button" class="refund-btn" data-payment-id="${p.yookassa_payment_id}" data-amount="${p.amount_rub}">Вернуть</button>`
@@ -1660,12 +1764,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 const dateStr = dateObj ? dateObj.toLocaleDateString('ru-RU') : '—';
                 const timeStr = dateObj ? dateObj.toLocaleTimeString('ru-RU') : '';
 
-                // Собираем строку таблицы с новой колонкой
+                // Make row clickable to show details
+                tr.style.cursor = 'pointer';
+                tr.dataset.paymentId = p.id;
+                
+                // Store payment data for modal
+                tr.dataset.paymentData = JSON.stringify({
+                    id: p.id,
+                    client: p.clients?.name || 'Н/Д',
+                    amount: p.amount_rub,
+                    payment_type: p.payment_type,
+                    method: p.method,
+                    status: p.status,
+                    created_at: p.created_at,
+                    description: p.description,
+                    yookassa_payment_id: p.yookassa_payment_id
+                });
+
+                // Build table row with separate payment_type and method columns
                 tr.innerHTML = `
                     <td>${p.clients?.name || 'Н/Д'}</td>
-                    <td>${p.amount_rub ?? 0}</td>
-                    <td>${method}</td>
-                    <td>${description}</td> <!-- ВОТ НОВАЯ ЯЧЕЙКА С ОПИСАНИЕМ -->
+                    <td>${p.amount_rub ?? 0} ₽</td>
+                    <td>${typeLabel}</td>
+                    <td><span class="payment-method-badge ${p.method || ''}">${methodLabel}</span></td>
                     <td>${createStatusBadge(p.status, 'payment')}</td>
                     <td>
                         <div>${dateStr}</div>
