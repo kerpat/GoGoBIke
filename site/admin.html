@@ -447,50 +447,6 @@
         </form>
       </section>
 
-      <!-- Аккумуляторы -->
-      <section id="batteries-section" class="admin-section hidden">
-        <div class="section-header">
-          <h2>Аккумуляторы</h2>
-          <div class="section-toolbar">
-            <button type="button" id="battery-add-btn" class="btn btn-primary">Добавить аккумулятор</button>
-          </div>
-        </div>
-
-        <table id="batteries-table" class="admin-table">
-          <thead>
-          <tr>
-            <th>Название</th>
-            <th>Мощность</th>
-            <th>Описание</th>
-            <th>Действия</th>
-          </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-
-        <h3 id="battery-form-title" class="hidden" style="margin-top: 30px;">Новый аккумулятор</h3>
-        <form id="battery-form" class="hidden">
-          <input type="hidden" id="battery-id">
-          <div class="form-group">
-            <label for="battery-name">Название</label>
-            <input type="text" id="battery-name" placeholder="Например: 60V 20Ah" required>
-          </div>
-          <div class="form-group">
-            <label for="battery-power">Мощность</label>
-            <input type="text" id="battery-power" placeholder="Например: 240W">
-          </div>
-          <div class="form-group">
-            <label for="battery-description">Описание</label>
-            <textarea id="battery-description" placeholder="Дополнительная информация" rows="3"></textarea>
-          </div>
-
-          <div class="form-actions">
-            <button type="submit">Сохранить</button>
-            <button type="button" id="battery-cancel-btn">Отмена</button>
-          </div>
-        </form>
-      </section>
-
       <!-- Карта велосипедов -->
       <section id="admin-map-section" class="admin-section hidden">
         <div class="section-header">
@@ -503,6 +459,60 @@
         <div id="admin-map-container"></div>
       </section>
 
+      <!-- НОВАЯ СЕКЦИЯ: Аккумуляторы -->
+      <section id="batteries-section" class="admin-section hidden">
+        <div class="section-header">
+          <h2>Аккумуляторы</h2>
+          <div class="section-toolbar">
+            <input type="search" id="battery-search" class="toolbar-input" placeholder="Поиск по номеру или описанию">
+            <button type="button" id="battery-add-btn" class="btn btn-primary">Добавить аккумулятор</button>
+          </div>
+        </div>
+
+        <table id="batteries-table" class="admin-table">
+           <thead>
+           <tr>
+             <th>ID</th>
+             <th>Серийный номер</th>
+             <th>Мощность (Wh)</th>
+             <th>Описание</th>
+             <th>Статус</th>
+             <th>Действия</th>
+           </tr>
+           </thead>
+           <tbody></tbody>
+         </table>
+
+        <h3 id="battery-form-title" class="hidden" style="margin-top: 30px;">Новый аккумулятор</h3>
+        <form id="battery-form" class="hidden">
+          <input type="hidden" id="battery-id">
+          <div class="form-group">
+              <label for="battery-serial-number">Серийный номер (уникальный)</label>
+              <input type="text" id="battery-serial-number" placeholder="Например: АКБ-001" required>
+          </div>
+          <div class="form-group">
+              <label for="battery-capacity">Мощность (Ватт-часы)</label>
+              <input type="number" id="battery-capacity" placeholder="Например: 1000">
+          </div>
+          <div class="form-group">
+              <label for="battery-description">Описание</label>
+              <textarea id="battery-description" placeholder="Любые заметки" rows="2"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="battery-status">Статус</label>
+            <select id="battery-status" class="form-control" required>
+                <option value="available">Свободен</option>
+                <option value="in_use">В аренде</option>
+                <option value="charging">На зарядке</option>
+                <option value="maintenance">На обслуживании</option>
+            </select>
+          </div>
+          <div class="form-actions">
+            <button type="submit">Сохранить</button>
+            <button type="button" id="battery-cancel-btn">Отмена</button>
+          </div>
+        </form>
+      </section>
 
 
       </div> <!-- End admin-sections-container -->
@@ -669,7 +679,6 @@
       </div>
     </div>
 
-
     <!-- Модальное окно для выбора велосипеда -->
     <div id="assign-bike-modal" class="overlay hidden">
       <div class="modal" style="max-width: 500px;">
@@ -711,39 +720,6 @@
         </div>
         <div class="modal-footer">
           <button type="button" id="assign-bike-submit-btn" class="btn btn-primary">Привязать и активировать</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Модальное окно для выбора аккумулятора -->
-    <div id="assign-battery-modal" class="overlay hidden">
-      <div class="modal" style="max-width: 500px;">
-        <div class="modal-header">
-          <h3>Выбрать аккумулятор для аренды</h3>
-          <button id="assign-battery-cancel-btn" class="close-btn">&times;</button>
-        </div>
-        <div class="modal-body">
-          <form id="assign-battery-form">
-            <input type="hidden" id="assign-battery-rental-id">
-            <div class="form-group">
-              <label for="battery-select">Выберите аккумулятор:</label>
-              <select id="battery-select" class="form-control" required></select>
-            </div>
-            <div id="battery-details" style="display: none;">
-              <h4>Данные аккумулятора</h4>
-              <div class="form-group">
-                <label for="assign-battery-power">Мощность</label>
-                <input type="text" id="assign-battery-power" class="modal-form-input" readonly>
-              </div>
-              <div class="form-group">
-                <label for="assign-battery-description">Описание</label>
-                <textarea id="assign-battery-description" class="modal-form-input" rows="3" readonly></textarea>
-              </div>
-            </div>
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" id="assign-battery-submit-btn" class="btn btn-primary">Назначить и активировать</button>
         </div>
       </div>
     </div>
@@ -984,6 +960,28 @@
         </div>
         <div class="modal-footer">
           <button type="button" id="add-note-modal-submit" class="btn btn-primary">Добавить</button>
+        </div>
+      </div>
+
+      <!-- НОВОЕ МОДАЛЬНОЕ ОКНО: Выбор аккумуляторов для аренды -->
+      <div id="assign-batteries-modal" class="overlay hidden">
+        <div class="modal" style="max-width: 550px;">
+          <div class="modal-header">
+            <h3>Выберите аккумуляторы для аренды</h3>
+            <button id="assign-batteries-cancel-btn" class="close-btn">&times;</button>
+          </div>
+          <div class="modal-body">
+            <form id="assign-batteries-form">
+              <input type="hidden" id="assign-batteries-rental-id">
+              <p>Выберите один или несколько свободных аккумуляторов:</p>
+              <div id="battery-select-list" style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px; padding: 10px;">
+                <!-- Список АКБ будет загружен сюда через JS -->
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" id="assign-batteries-submit-btn" class="btn btn-primary">Подтвердить и активировать</button>
+          </div>
         </div>
       </div>
     </div>
