@@ -321,7 +321,7 @@ async def recognize_document_from_images(images: list, country: str = 'ru') -> d
         return {}
 
     try:
-        model = genai.GenerativeModel('gemini-2.0-flash-lite')
+        model = genai.GenerativeModel('gemini-2.5-flash-lite')
 
         # Выбираем промпт в зависимости от страны
         if country == 'ru':
