@@ -376,7 +376,7 @@ async def recognize_document(bot: Bot, file_ids: list) -> dict:
         return {}
 
     try:
-        model = genai.GenerativeModel('gemini-2.5-flash-lite')
+        model = genai.GenerativeModel('gemini-2.0-flash-lite')
 
         image_parts = []
         for file_id in file_ids:
