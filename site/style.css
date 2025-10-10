@@ -121,6 +121,49 @@ body.tg-webapp .app-main h2,
   pointer-events: none; /* чтобы клики проходили сквозь */
 }
 
+/* Компактное отображение информации о велосипеде и АКБ */
+.bike-info-compact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 20px;
+  background-color: var(--white);
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(8, 56, 48, 0.08);
+  margin: 10px 0 15px 0;
+  font-size: 0.9rem;
+}
+
+.bike-info-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bike-info-label {
+  font-weight: 600;
+  color: var(--dark-green);
+}
+
+.bike-info-value {
+  font-weight: 500;
+  color: var(--icon-green);
+}
+
+.bike-info-divider {
+  color: #d0e5e0;
+  font-weight: 300;
+  font-size: 1.1rem;
+}
+
+.bike-info-loading,
+.bike-info-error {
+  color: #7a9a95;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
 .progress-section {
   width: 100%;
 }
@@ -1130,6 +1173,68 @@ body:has(.map-page-container) #map {
   outline: none;
   border-color: var(--icon-green);
   background-color: var(--white);
+}
+
+/* === СТИЛИ ДЛЯ ФОТОКОНТРОЛЯ === */
+.inspection-step {
+  padding: 15px;
+  background: var(--card-bg);
+  border-radius: 12px;
+  margin-bottom: 15px;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.inspection-step:hover {
+  border-color: var(--icon-green);
+  background: #f7faf7;
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--icon-green);
+  color: white;
+  border-radius: 50%;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.step-header h3 {
+  flex: 1;
+  margin: 0;
+  font-size: 1rem;
+  color: var(--dark-green);
+  font-weight: 600;
+}
+
+.step-status {
+  font-size: 1.2rem;
+}
+
+.inspection-upload-btn {
+  width: 100%;
+  margin-top: 5px;
+}
+
+.inspection-preview {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.inspection-preview img {
+  border: 2px solid var(--icon-green);
+  box-shadow: 0 2px 8px rgba(8, 56, 48, 0.1);
 }
 
 /* === СТИЛИ ДЛЯ ВЫБОРА ГОРОДА === */

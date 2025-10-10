@@ -42,16 +42,9 @@ export async function renderActiveRentalView(mainContent, rental, userBalance) {
             <img src="bike-delivery.png" alt="Rented Electric bike" class="bike-image" width="1536" height="1024" decoding="async" fetchpriority="high">
         </div>
 
-        <!-- НОВЫЙ БЛОК С АКБ -->
-        <div class="rental-equipment-info">
-            <div class="equipment-label">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-                </svg>
-                <span>В комплекте:</span>
-            </div>
-            <div class="battery-chips" id="rental-batteries-list"></div>
+        <!-- БЛОК С ИНФОРМАЦИЕЙ О ВЕЛОСИПЕДЕ И АКБ -->
+        <div class="bike-info-compact" id="rental-bike-info-container">
+            <span class="bike-info-loading">Загрузка...</span>
         </div>
 
         <div class="progress-section">
@@ -91,33 +84,40 @@ export async function renderActiveRentalView(mainContent, rental, userBalance) {
         </div>
     `;
 
-    // ЗАГРУЖАЕМ И ОТОБРАЖАЕМ АККУМУЛЯТОРЫ
+    // ЗАГРУЖАЕМ И ОТОБРАЖАЕМ ИНФОРМАЦИЮ О ВЕЛОСИПЕДЕ И АКБ
     try {
         const { data: batteries, error } = await supabase
             .from('rental_batteries')
             .select('batteries(serial_number)')
             .eq('rental_id', rental.id);
 
-        const batteryList = document.getElementById('rental-batteries-list');
-        if (batteries && batteries.length > 0 && batteryList) {
-            batteries.forEach(rb => {
-                const chip = document.createElement('div');
-                chip.className = 'battery-chip';
-                chip.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-                    </svg>
-                    ${rb.batteries.serial_number}
-                `;
-                batteryList.appendChild(chip);
-            });
-        } else if (batteryList) {
-            // Если АКБ нет, показываем placeholder
-            batteryList.innerHTML = '<span style="color: #7a9a95; font-size: 0.85rem;">Информация недоступна</span>';
+        const bikeInfoContainer = document.getElementById('rental-bike-info-container');
+        if (bikeInfoContainer) {
+            let bikeCode = rental.bikes?.code || rental.bikes?.registration_number || 'N/A';
+            let akbNumbers = 'Не указано';
+            
+            if (batteries && batteries.length > 0) {
+                akbNumbers = batteries.map(rb => '№' + rb.batteries.serial_number).join(', ');
+            }
+            
+            bikeInfoContainer.innerHTML = `
+                <div class="bike-info-item">
+                    <span class="bike-info-label">АКБ:</span>
+                    <span class="bike-info-value">${akbNumbers}</span>
+                </div>
+                <div class="bike-info-divider">|</div>
+                <div class="bike-info-item">
+                    <span class="bike-info-label">Велосипед:</span>
+                    <span class="bike-info-value">№${bikeCode}</span>
+                </div>
+            `;
         }
     } catch (err) {
-        console.error('Не удалось загрузить список аккумуляторов:', err);
+        console.error('Не удалось загрузить информацию:', err);
+        const bikeInfoContainer = document.getElementById('rental-bike-info-container');
+        if (bikeInfoContainer) {
+            bikeInfoContainer.innerHTML = `<span class="bike-info-error">Ошибка загрузки информации</span>`;
+        }
     }
 }
 

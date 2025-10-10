@@ -450,7 +450,7 @@
                 <!-- Сюда JavaScript будет вставлять варианты -->
             </div>
 
-            <button class="btn btn-primary" id="select-tariff-btn">Выбрать тариф</button>
+            <button class="btn btn-primary" id="select-tariff-btn">Арендовать</button>
         </div>
     </div>
     <div id="topup-modal" class="modal-overlay hidden">
@@ -620,8 +620,10 @@
                 <img src="bike-delivery.png" alt="Rented Electric bike" class="bike-image" width="1536" height="1024" decoding="async" fetchpriority="high">
             </div>
 
-            <!-- НОВЫЙ ДВУХУРОВНЕВЫЙ БЛОК АКБ -->
-            <div class="battery-info-container" id="rental-batteries-container"></div>
+            <!-- БЛОК С ИНФОРМАЦИЕЙ О ВЕЛОСИПЕДЕ И АКБ -->
+            <div class="bike-info-compact" id="rental-bike-info-container">
+                <span class="bike-info-loading">Загрузка...</span>
+            </div>
 
             <div class="progress-section">
                 <div class="progress-bar-container"><div class="progress-bar" style="width: ${progress}%; background-color: ${progressBarColor};"></div></div>
@@ -662,28 +664,39 @@
             </div>
         `;
 
-            // ЗАГРУЖАЕМ И ОТОБРАЖАЕМ АККУМУЛЯТОРЫ (ДВУХУРОВНЕВЫЙ ДИЗАЙН)
+            // ЗАГРУЖАЕМ И ОТОБРАЖАЕМ ИНФОРМАЦИЮ О ВЕЛОСИПЕДЕ И АКБ
             try {
                 const { data: batteries, error } = await supabase
                     .from('rental_batteries')
                     .select('batteries(serial_number)')
                     .eq('rental_id', rental.id);
 
-                const batteryContainer = document.getElementById('rental-batteries-container');
-                if (batteryContainer) {
+                const bikeInfoContainer = document.getElementById('rental-bike-info-container');
+                if (bikeInfoContainer) {
+                    let bikeCode = rental.bikes?.code || rental.bikes?.registration_number || 'N/A';
+                    let akbNumbers = 'Не указано';
+                    
                     if (batteries && batteries.length > 0) {
-                        const serialNumbers = batteries.map(rb => rb.batteries.serial_number).join(', ');
-                        // Создаем HTML с вложенным элементом span
-                        batteryContainer.innerHTML = `<span class="battery-info-chip"><strong>АКБ:</strong> ${serialNumbers}</span>`;
-                    } else {
-                        batteryContainer.innerHTML = `<span class="battery-info-chip"><strong>АКБ:</strong> Информация недоступна</span>`;
+                        akbNumbers = batteries.map(rb => '№' + rb.batteries.serial_number).join(', ');
                     }
+                    
+                    bikeInfoContainer.innerHTML = `
+                        <div class="bike-info-item">
+                            <span class="bike-info-label">АКБ:</span>
+                            <span class="bike-info-value">${akbNumbers}</span>
+                        </div>
+                        <div class="bike-info-divider">|</div>
+                        <div class="bike-info-item">
+                            <span class="bike-info-label">Велосипед:</span>
+                            <span class="bike-info-value">№${bikeCode}</span>
+                        </div>
+                    `;
                 }
             } catch (err) {
-                console.error('Не удалось загрузить список аккумуляторов:', err);
-                const batteryContainer = document.getElementById('rental-batteries-container');
-                if (batteryContainer) {
-                    batteryContainer.innerHTML = `<span class="battery-info-chip"><strong>АКБ:</strong> Ошибка загрузки</span>`;
+                console.error('Не удалось загрузить информацию:', err);
+                const bikeInfoContainer = document.getElementById('rental-bike-info-container');
+                if (bikeInfoContainer) {
+                    bikeInfoContainer.innerHTML = `<span class="bike-info-error">Ошибка загрузки информации</span>`;
                 }
             }
 
@@ -1042,7 +1055,7 @@
                         // 2. Если брони нет, проверяем наличие активной аренды
                         const { data: rental, error: rentalError } = await supabase
                             .from('rentals')
-                            .select('*, tariffs(*)')
+                            .select('*, tariffs(*), bikes(id, code, registration_number, model_name)')
                             .eq('user_id', userId)
                             .in('status', ['active', 'overdue', 'pending_return', 'awaiting_battery_assignment', 'awaiting_contract_signing'])
                             .order('created_at', { ascending: false })
@@ -1645,7 +1658,7 @@
 
                 // Показываем состояние загрузки
                 const rentBtn = document.getElementById('tariff-detail-select-btn');
-                if (rentBtn) toggleButtonLoading(rentBtn, true, 'Выбрать тариф', 'Обработка...');
+                if (rentBtn) toggleButtonLoading(rentBtn, true, 'Арендовать', 'Обработка...');
 
                 try {
                     // Сначала проверяем баланс клиента
@@ -1730,7 +1743,7 @@
                 } catch (err) {
                     alert(`Ошибка оформления аренды: ${err.message}`);
                 } finally {
-                    if (rentBtn) toggleButtonLoading(rentBtn, false, 'Выбрать тариф', 'Обработка...');
+                    if (rentBtn) toggleButtonLoading(rentBtn, false, 'Арендовать', 'Обработка...');
                 }
             };
 

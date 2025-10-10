@@ -1477,9 +1477,31 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     // --- Rentals and Payments Loaders ---
 
+    // Функция для проверки просрочек
+    async function checkOverdueRentals() {
+        try {
+            const response = await authedFetch('/api/admin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'check-overdue-rentals' })
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                console.log('Overdue check completed:', result);
+            }
+        } catch (error) {
+            console.error('Error checking overdue rentals:', error);
+        }
+    }
+
     async function loadRentals() {
         const tbody = document.querySelector('#rentals-table tbody');
         tbody.innerHTML = '<tr><td colspan="8">Загрузка...</td></tr>';
+        
+        // Запускаем проверку просрочек в фоне (не блокируем загрузку таблицы)
+        checkOverdueRentals();
+        
         try {
             const statusRuMap = {
                 'active': 'Активна',
@@ -1497,10 +1519,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (error) throw error;
             tbody.innerHTML = '';
-            (data || []).forEach(r => {
+            
+            // Функция для расчета времени просрочки
+            const calculateOverdue = (endDate) => {
+                const now = new Date();
+                const end = new Date(endDate);
+                const diffMs = now - end;
+                
+                if (diffMs <= 0) return null; // Не просрочено
+                
+                const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                
+                if (days > 0) {
+                    return `${days} д. ${hours} ч.`;
+                } else {
+                    return `${hours} ч.`;
+                }
+            };
+            
+            // Сортируем: просроченные аренды сначала
+            const sortedData = (data || []).sort((a, b) => {
+                const aOverdue = a.status === 'active' && a.current_period_ends_at && new Date(a.current_period_ends_at) < new Date();
+                const bOverdue = b.status === 'active' && b.current_period_ends_at && new Date(b.current_period_ends_at) < new Date();
+                
+                if (aOverdue && !bOverdue) return -1;
+                if (!aOverdue && bOverdue) return 1;
+                return 0;
+            });
+            
+            sortedData.forEach(r => {
                 const tr = document.createElement('tr');
                 const start = r.starts_at ? new Date(r.starts_at).toLocaleString('ru-RU') : '—';
-                const end = r.current_period_ends_at ? new Date(r.current_period_ends_at).toLocaleString('ru-RU') : '—';
+                let endDisplay = r.current_period_ends_at ? new Date(r.current_period_ends_at).toLocaleString('ru-RU') : '—';
+                
+                // Проверяем, просрочена ли аренда
+                const isOverdue = r.status === 'active' && r.current_period_ends_at && new Date(r.current_period_ends_at) < new Date();
+                const overdueTime = isOverdue ? calculateOverdue(r.current_period_ends_at) : null;
+                
+                if (isOverdue && overdueTime) {
+                    endDisplay += ` <span class="overdue-label">(просрочено ${overdueTime})</span>`;
+                    tr.classList.add('rental-overdue');
+                }
 
                 // --- НОВАЯ ЛОГИКА ДЛЯ КНОПОК ДЕЙСТВИЙ ---
                 let actionsCell = `<button type="button" class="edit-rental-btn" data-id="${r.id}">Ред.</button>`;
@@ -1520,6 +1580,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     actionsCell += ` <button type="button" class="end-rental-btn" data-id="${r.id}">Завершить</button>`;
                 }
 
+                // Кнопка фотоконтроля
+                const hasPhotos = r.extra_data?.pre_rental_photos?.completed_at;
+                const photoControlCell = hasPhotos 
+                    ? `<button type="button" class="view-photos-btn" data-rental-id="${r.id}" style="font-size: 0.9rem;">👁️ Посмотреть</button>`
+                    : '<span style="color: #999;">—</span>';
+
                 tr.innerHTML = `
                     <td>${r.clients?.name || 'Н/Д'}</td>
                     <td>${r.clients?.phone || 'Н/Д'}</td>
@@ -1531,15 +1597,73 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     </td>
                     <td>${start}</td>
-                    <td>${end}</td>
+                    <td>${endDisplay}</td>
                     <td>${typeof r.total_paid_rub === 'number' ? r.total_paid_rub : 0}</td>
                     <td>${createStatusBadge(r.status, 'rental')}</td>
+                    <td>${photoControlCell}</td>
                     <td class="table-actions">${actionsCell}</td>
                 `;
                 tbody.appendChild(tr);
             });
         } catch (err) {
-            tbody.innerHTML = `<tr><td colspan="8">Ошибка загрузки аренд: ${err.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9">Ошибка загрузки аренд: ${err.message}</td></tr>`;
+        }
+    }
+    
+    // Обработчик просмотра фотоконтроля
+    document.addEventListener('click', async (e) => {
+        if (e.target.matches('.view-photos-btn')) {
+            const rentalId = e.target.dataset.rentalId;
+            await showPhotoInspectionModal(rentalId);
+        }
+    });
+    
+    async function showPhotoInspectionModal(rentalId) {
+        try {
+            const { data: rental, error } = await supabase
+                .from('rentals')
+                .select('extra_data')
+                .eq('id', rentalId)
+                .single();
+                
+            if (error) throw error;
+            
+            const photos = rental.extra_data?.pre_rental_photos;
+            if (!photos) {
+                alert('Фотоконтроль не найден');
+                return;
+            }
+            
+            const modalHtml = `
+                <div class="modal-overlay" id="photo-inspection-view-modal" style="display: flex;">
+                    <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+                        <button class="modal-close" onclick="document.getElementById('photo-inspection-view-modal').remove()">&times;</button>
+                        <h2>Фотоконтроль велосипеда</h2>
+                        <p style="text-align: center; color: #666; margin-bottom: 20px;">
+                            Пройден: ${new Date(photos.completed_at).toLocaleString('ru-RU')}
+                        </p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            ${photos.photo_front ? `<div><h4>Спереди</h4><img src="${photos.photo_front}" style="width: 100%; border-radius: 8px; border: 2px solid #ddd;"></div>` : ''}
+                            ${photos.photo_back ? `<div><h4>Сзади</h4><img src="${photos.photo_back}" style="width: 100%; border-radius: 8px; border: 2px solid #ddd;"></div>` : ''}
+                            ${photos.photo_left ? `<div><h4>Слева</h4><img src="${photos.photo_left}" style="width: 100%; border-radius: 8px; border: 2px solid #ddd;"></div>` : ''}
+                            ${photos.photo_right ? `<div><h4>Справа</h4><img src="${photos.photo_right}" style="width: 100%; border-radius: 8px; border: 2px solid #ddd;"></div>` : ''}
+                        </div>
+                        ${photos.video_inspection ? `
+                            <div style="margin-top: 20px;">
+                                <h4>Видео осмотра</h4>
+                                <video controls style="width: 100%; max-height: 400px; border-radius: 8px; border: 2px solid #ddd;">
+                                    <source src="${photos.video_inspection}" type="video/mp4">
+                                    Ваш браузер не поддерживает видео.
+                                </video>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        } catch (error) {
+            alert('Ошибка загрузки фотоконтроля: ' + error.message);
         }
     }
 

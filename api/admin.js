@@ -674,6 +674,115 @@ async function handleNotifyBatteryAssignment({ rentalId }) {
         return { status: 500, body: { error: err.message } };
     }
 }
+
+// Функция для форматирования времени просрочки
+function formatOverdueTime(overdueMs) {
+    const days = Math.floor(overdueMs / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((overdueMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    
+    if (days > 0) {
+        return `${days} д. ${hours} ч.`;
+    } else {
+        return `${hours} ч.`;
+    }
+}
+
+async function handleCheckOverdueRentals() {
+    try {
+        const supabaseAdmin = createSupabaseAdmin();
+        const now = new Date();
+        const ADMIN_TELEGRAM_IDS = process.env.ADMIN_TELEGRAM_IDS ? process.env.ADMIN_TELEGRAM_IDS.split(',') : ['752012766'];
+
+        // Получаем все активные аренды, которые просрочены
+        const { data: overdueRentals, error } = await supabaseAdmin
+            .from('rentals')
+            .select(`
+                id,
+                user_id,
+                current_period_ends_at,
+                extra_data,
+                clients (name, phone, telegram_user_id)
+            `)
+            .eq('status', 'active')
+            .lt('current_period_ends_at', now.toISOString());
+
+        if (error) {
+            throw new Error('Failed to fetch overdue rentals: ' + error.message);
+        }
+
+        if (!overdueRentals || overdueRentals.length === 0) {
+            return { status: 200, body: { message: 'No overdue rentals found', count: 0 } };
+        }
+
+        // Обрабатываем каждую просроченную аренду
+        const notifications = [];
+        
+        for (const rental of overdueRentals) {
+            const endDate = new Date(rental.current_period_ends_at);
+            const overdueMs = now - endDate;
+            const overdueTime = formatOverdueTime(overdueMs);
+            
+            // Проверяем, было ли уже отправлено уведомление
+            const lastNotified = rental.extra_data?.last_overdue_notification;
+            const hoursSinceLastNotification = lastNotified 
+                ? (now - new Date(lastNotified)) / (1000 * 60 * 60)
+                : 999;
+            
+            // Отправляем уведомление не чаще раза в 24 часа
+            if (hoursSinceLastNotification < 24) {
+                continue;
+            }
+
+            const clientName = rental.clients?.name || 'Клиент';
+            const clientPhone = rental.clients?.phone || 'N/A';
+            const telegramUserId = rental.clients?.telegram_user_id;
+
+            // Уведомление админам
+            const adminMessage = `⚠️ *Аренда просрочена!*\n\nКлиент: *${clientName}*\nТелефон: ${clientPhone}\nПросрочено: *${overdueTime}*\n\nПожалуйста, свяжитесь с клиентом.`;
+            
+            for (const adminId of ADMIN_TELEGRAM_IDS) {
+                await sendTelegramMessage(adminId, adminMessage);
+                notifications.push({ type: 'admin', adminId, rentalId: rental.id });
+            }
+
+            // Уведомление клиенту (если есть telegram_user_id)
+            if (telegramUserId) {
+                const clientMessage = `⚠️ *Ваша аренда просрочена на ${overdueTime}*\n\nПожалуйста, верните электровелосипед как можно скорее или продлите аренду через приложение.\n\nЗа каждый день просрочки может взиматься штраф согласно договору.`;
+                
+                await sendTelegramMessage(telegramUserId, clientMessage);
+                notifications.push({ type: 'client', userId: telegramUserId, rentalId: rental.id });
+            }
+
+            // Обновляем время последнего уведомления
+            const updatedExtraData = {
+                ...rental.extra_data,
+                last_overdue_notification: now.toISOString()
+            };
+
+            await supabaseAdmin
+                .from('rentals')
+                .update({ extra_data: updatedExtraData })
+                .eq('id', rental.id);
+        }
+
+        return {
+            status: 200,
+            body: {
+                message: 'Overdue notifications sent',
+                count: overdueRentals.length,
+                notifications: notifications
+            }
+        };
+
+    } catch (error) {
+        console.error('Check overdue rentals error:', error);
+        return { 
+            status: 500,
+            body: { error: 'Internal server error', details: error.message }
+        };
+    }
+}
+
 async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -728,6 +837,9 @@ async function handler(req, res) {
                 break;
             case 'notify-battery-assignment':
                 result = await handleNotifyBatteryAssignment(body);
+                break;
+            case 'check-overdue-rentals':
+                result = await handleCheckOverdueRentals();
                 break;
             default:
                 result = { status: 400, body: { error: 'Invalid action' } };

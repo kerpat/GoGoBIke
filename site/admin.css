@@ -918,6 +918,32 @@ body {
   transform: scale(1.05);
 }
 
+/* Подсветка просроченных аренд */
+.admin-table tbody tr.rental-overdue {
+  background: #fee;
+  border-left: 4px solid #e53e3e;
+}
+
+.admin-table tbody tr.rental-overdue:hover {
+  background: #fdd;
+  transform: translateX(4px);
+}
+
+.admin-table tbody tr.rental-overdue td {
+  border-bottom-color: #fcc;
+}
+
+.overdue-label {
+  color: #e53e3e;
+  font-weight: 600;
+  font-size: 0.85rem;
+  display: inline-block;
+  padding: 2px 8px;
+  background: #fee;
+  border-radius: 6px;
+  margin-left: 8px;
+}
+
 /* Forms with enhanced input focus animations */
 input[type="text"],
 input[type="number"],

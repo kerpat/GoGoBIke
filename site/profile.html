@@ -583,6 +583,84 @@
             </div>
         </div>
     </div>
+    
+    <!-- Модальное окно для фотоконтроля велосипеда -->
+    <div id="photo-inspection-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 600px;">
+            <button class="modal-close" id="photo-inspection-close">&times;</button>
+            <h2 style="text-align: center;">Фотоконтроль велосипеда</h2>
+            <p style="text-align: center; color: #556f6b; margin-bottom: 20px;">
+                Пожалуйста, сфотографируйте велосипед с 4 сторон и запишите видео осмотра
+            </p>
+            
+            <div id="photo-inspection-steps">
+                <!-- Шаг 1: Фото спереди -->
+                <div class="inspection-step" data-step="photo_front">
+                    <div class="step-header">
+                        <span class="step-number">1</span>
+                        <h3>Фото спереди</h3>
+                        <span class="step-status">⏳</span>
+                    </div>
+                    <input type="file" accept="image/*" capture="environment" class="inspection-file-input" data-type="photo_front" style="display: none;">
+                    <button class="btn btn-secondary inspection-upload-btn" data-type="photo_front">📷 Сделать фото</button>
+                    <div class="inspection-preview" data-type="photo_front"></div>
+                </div>
+
+                <!-- Шаг 2: Фото сзади -->
+                <div class="inspection-step" data-step="photo_back">
+                    <div class="step-header">
+                        <span class="step-number">2</span>
+                        <h3>Фото сзади</h3>
+                        <span class="step-status">⏳</span>
+                    </div>
+                    <input type="file" accept="image/*" capture="environment" class="inspection-file-input" data-type="photo_back" style="display: none;">
+                    <button class="btn btn-secondary inspection-upload-btn" data-type="photo_back">📷 Сделать фото</button>
+                    <div class="inspection-preview" data-type="photo_back"></div>
+                </div>
+
+                <!-- Шаг 3: Фото слева -->
+                <div class="inspection-step" data-step="photo_left">
+                    <div class="step-header">
+                        <span class="step-number">3</span>
+                        <h3>Фото слева</h3>
+                        <span class="step-status">⏳</span>
+                    </div>
+                    <input type="file" accept="image/*" capture="environment" class="inspection-file-input" data-type="photo_left" style="display: none;">
+                    <button class="btn btn-secondary inspection-upload-btn" data-type="photo_left">📷 Сделать фото</button>
+                    <div class="inspection-preview" data-type="photo_left"></div>
+                </div>
+
+                <!-- Шаг 4: Фото справа -->
+                <div class="inspection-step" data-step="photo_right">
+                    <div class="step-header">
+                        <span class="step-number">4</span>
+                        <h3>Фото справа</h3>
+                        <span class="step-status">⏳</span>
+                    </div>
+                    <input type="file" accept="image/*" capture="environment" class="inspection-file-input" data-type="photo_right" style="display: none;">
+                    <button class="btn btn-secondary inspection-upload-btn" data-type="photo_right">📷 Сделать фото</button>
+                    <div class="inspection-preview" data-type="photo_right"></div>
+                </div>
+
+                <!-- Шаг 5: Видео осмотра -->
+                <div class="inspection-step" data-step="video_inspection">
+                    <div class="step-header">
+                        <span class="step-number">5</span>
+                        <h3>Видео осмотра (круговой обзор)</h3>
+                        <span class="step-status">⏳</span>
+                    </div>
+                    <input type="file" accept="video/*" capture="environment" class="inspection-file-input" data-type="video_inspection" style="display: none;">
+                    <button class="btn btn-secondary inspection-upload-btn" data-type="video_inspection">🎥 Записать видео</button>
+                    <div class="inspection-preview" data-type="video_inspection"></div>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; text-align: center;">
+                <button id="complete-inspection-btn" class="btn btn-primary" disabled>Завершить фотоконтроль</button>
+            </div>
+        </div>
+    </div>
+    
     <!-- ОБНОВЛЕННЫЙ HTML ДЛЯ ЧАТА ПОДДЕРЖКИ -->
     <div id="support-modal" class="modal-overlay hidden chat-modal">
         <div class="modal-content">
@@ -1437,6 +1515,143 @@
             });
             // ===============================================================
             // === КОНЕЦ БЛОКА ВЫБОРА ГОРОДА ================================
+            // ===============================================================
+
+            // ===============================================================
+            // === БЛОК ФОТОКОНТРОЛЯ ВЕЛОСИПЕДА ============================
+            // ===============================================================
+            
+            let currentInspectionRentalId = null;
+            const uploadedFiles = {};
+            
+            // Изменяем логику открытия договора - сначала проверяем фотоконтроль
+            const originalOpenContractModal = openContractModal;
+            openContractModal = async function(rentalId) {
+                try {
+                    const response = await fetch(`${CONTRACTS_API_URL}/api/user`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'get-contract-details', userId, rentalId })
+                    });
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.error || 'Server error');
+                    
+                    // Проверяем, пройден ли фотоконтроль
+                    const rental = result.rental;
+                    const hasInspection = rental.pre_rental_photos?.completed_at;
+                    
+                    if (!hasInspection) {
+                        // Если фотоконтроль не пройден - открываем модал фотоконтроля
+                        openPhotoInspectionModal(rentalId);
+                    } else {
+                        // Если пройден - показываем договор
+                        document.getElementById('contract-content').innerHTML = generateContractHTML(rental);
+                        document.getElementById('contract-modal').classList.remove('hidden');
+                        setupSignatureCanvas(rentalId, 'confirm-contract');
+                    }
+                } catch (error) {
+                    alert('Ошибка загрузки договора: ' + error.message);
+                }
+            };
+            
+            function openPhotoInspectionModal(rentalId) {
+                currentInspectionRentalId = rentalId;
+                document.getElementById('photo-inspection-modal').classList.remove('hidden');
+                resetInspectionForm();
+            }
+            
+            function resetInspectionForm() {
+                Object.keys(uploadedFiles).forEach(key => delete uploadedFiles[key]);
+                document.querySelectorAll('.inspection-step').forEach(step => {
+                    step.querySelector('.step-status').textContent = '⏳';
+                    step.querySelector('.inspection-preview').innerHTML = '';
+                });
+                document.getElementById('complete-inspection-btn').disabled = true;
+            }
+            
+            // Обработка кнопок загрузки
+            document.querySelectorAll('.inspection-upload-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const type = e.target.dataset.type;
+                    const input = document.querySelector(`input.inspection-file-input[data-type="${type}"]`);
+                    input.click();
+                });
+            });
+            
+            // Обработка выбора файлов
+            document.querySelectorAll('.inspection-file-input').forEach(input => {
+                input.addEventListener('change', async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    
+                    const type = e.target.dataset.type;
+                    const step = document.querySelector(`.inspection-step[data-step="${type}"]`);
+                    const statusEl = step.querySelector('.step-status');
+                    const previewEl = step.querySelector('.inspection-preview');
+                    
+                    statusEl.textContent = '⏳ Загрузка...';
+                    
+                    try {
+                        // Загружаем файл на сервер
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        formData.append('userId', userId);
+                        formData.append('rentalId', currentInspectionRentalId);
+                        formData.append('photoType', type);
+                        formData.append('uploadType', 'inspection');
+                        
+                        const response = await fetch('/api/upload', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        const result = await response.json();
+                        if (!response.ok) throw new Error(result.error || 'Ошибка загрузки');
+                        
+                        uploadedFiles[type] = result.url;
+                        statusEl.textContent = '✅';
+                        
+                        // Показываем превью
+                        if (type.startsWith('photo_')) {
+                            previewEl.innerHTML = `<img src="${URL.createObjectURL(file)}" style="max-width: 100px; max-height: 100px; border-radius: 8px; margin-top: 10px;">`;
+                        } else {
+                            previewEl.innerHTML = `<p style="color: green; margin-top: 10px;">✅ Видео загружено</p>`;
+                        }
+                        
+                        // Проверяем, все ли файлы загружены
+                        checkInspectionCompletion();
+                        
+                    } catch (error) {
+                        statusEl.textContent = '❌';
+                        alert('Ошибка загрузки: ' + error.message);
+                    }
+                });
+            });
+            
+            function checkInspectionCompletion() {
+                const requiredTypes = ['photo_front', 'photo_back', 'photo_left', 'photo_right', 'video_inspection'];
+                const allUploaded = requiredTypes.every(type => uploadedFiles[type]);
+                
+                document.getElementById('complete-inspection-btn').disabled = !allUploaded;
+            }
+            
+            // Завершение фотоконтроля
+            document.getElementById('complete-inspection-btn').addEventListener('click', () => {
+                document.getElementById('photo-inspection-modal').classList.add('hidden');
+                alert('Фотоконтроль успешно пройден! Теперь вы можете подписать договор.');
+                // Перезагружаем страницу или обновляем уведомления
+                loadNotifications();
+            });
+            
+            // Закрытие модального окна
+            document.getElementById('photo-inspection-close').addEventListener('click', () => {
+                if (confirm('Вы уверены? Фотоконтроль не будет завершен.')) {
+                    document.getElementById('photo-inspection-modal').classList.add('hidden');
+                }
+            });
+            
+            // ===============================================================
+            // === КОНЕЦ БЛОКА ФОТОКОНТРОЛЯ =================================
             // ===============================================================
 
 
