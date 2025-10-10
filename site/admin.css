@@ -819,10 +819,8 @@ body {
   width: 100%;
   overflow-x: auto;
   margin-bottom: 20px;
-  margin-left: -12px;
-  margin-right: -12px;
-  padding: 0 12px;
   position: relative;
+  padding: 0 12px;
 }
 
 .table-container::-webkit-scrollbar {
@@ -865,11 +863,11 @@ body {
 /* Специальные стили для секции аренд */
 #rentals-section {
   overflow: visible;
+  padding: 0 !important;
 }
 
 #rentals-section .section-header {
   padding: 0 12px;
-  margin-bottom: 20px;
 }
 
 /* Специальные стили ТОЛЬКО для таблицы аренд */
