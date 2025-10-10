@@ -2177,7 +2177,21 @@ select:focus::placeholder {
 
 /* Расширение контейнера для страницы "Аренды" */
 #admin-app.wide-content {
-  max-width: 1440px;
+  max-width: 95vw;
+  /* Занимает 95% ширины экрана */
+}
+
+/* Для больших экранов ограничиваем максимальную ширину */
+@media (min-width: 1600px) {
+  #admin-app.wide-content {
+    max-width: 1600px;
+  }
+}
+
+@media (min-width: 1920px) {
+  #admin-app.wide-content {
+    max-width: 1800px;
+  }
 }
 
 /*
