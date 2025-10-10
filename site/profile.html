@@ -1510,7 +1510,7 @@
                     
                     // Проверяем, пройден ли фотоконтроль
                     const rental = result.rental;
-                    const hasInspection = rental.pre_rental_photos?.completed_at;
+                    const hasInspection = rental.extra_data?.pre_rental_photos?.completed_at;
                     
                     if (!hasInspection) {
                         // Если фотоконтроль не пройден - открываем модал фотоконтроля
