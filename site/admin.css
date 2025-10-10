@@ -814,21 +814,28 @@ body {
   width: 100%;
 }
 
-/* Container для таблиц с прокруткой */
+/* Container для широких таблиц с прокруткой */
 .table-container {
   width: 100%;
   overflow-x: auto;
   margin-bottom: 20px;
-  border-radius: 12px;
+}
+
+@media (max-width: 1400px) {
+  .table-container {
+    border-radius: 12px;
+    box-shadow: inset -10px 0 10px -10px rgba(0,0,0,0.1);
+  }
 }
 
 .table-container::-webkit-scrollbar {
-  height: 8px;
+  height: 6px;
 }
 
 .table-container::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 10px;
+  margin: 0 12px;
 }
 
 .table-container::-webkit-scrollbar-thumb {
@@ -848,16 +855,22 @@ body {
   background: transparent;
   margin-bottom: 20px;
   table-layout: auto;
-  min-width: 1200px;
 }
 
 .admin-table th,
 .admin-table td {
   text-align: left;
-  padding: 8px 10px;
-  font-size: .88rem;
+  padding: 12px 14px;
+  font-size: .95rem;
   transition: background var(--transition-fast);
   background: var(--surface);
+}
+
+/* Специальные стили ТОЛЬКО для таблицы аренд */
+#rentals-table th,
+#rentals-table td {
+  padding: 8px 10px;
+  font-size: .88rem;
 }
 
 .admin-table thead th {
@@ -2196,68 +2209,28 @@ select:focus::placeholder {
   /* Отступы между кнопками */
 }
 
-/* 3. Фиксируем ширину колонок для компактного отображения */
-#rentals-table th:nth-child(1),
-#rentals-table td:nth-child(1) {
-  /* Клиент */
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-#rentals-table th:nth-child(2),
-#rentals-table td:nth-child(2) {
-  /* Телефон */
-  max-width: 120px;
-}
-
-#rentals-table th:nth-child(3),
-#rentals-table td:nth-child(3) {
-  /* Велосипед */
-  max-width: 130px;
-}
-
+/* 3. Оптимизация ширины колонок для таблицы аренд */
 #rentals-table th:nth-child(4),
 #rentals-table td:nth-child(4),
 #rentals-table th:nth-child(5),
 #rentals-table td:nth-child(5) {
   /* Даты начало и конец */
-  width: 130px;
-  min-width: 130px;
+  white-space: nowrap;
   vertical-align: top;
-}
-
-#rentals-table th:nth-child(6),
-#rentals-table td:nth-child(6) {
-  /* Сумма */
-  width: 70px;
-  min-width: 70px;
-}
-
-#rentals-table th:nth-child(7),
-#rentals-table td:nth-child(7) {
-  /* Статус */
-  width: 120px;
 }
 
 #rentals-table th:nth-child(8),
 #rentals-table td:nth-child(8) {
   /* Фотоконтроль */
-  width: 100px;
   text-align: center;
-}
-
-#rentals-table th:nth-child(9),
-#rentals-table td:nth-child(9) {
-  /* Действия */
-  min-width: 120px;
+  white-space: nowrap;
 }
 
 /* 4. Стили для кнопок в колонке действий */
 #rentals-table td.table-actions button,
 #rentals-table td.table-actions a {
-  font-size: 0.8rem;
-  padding: 5px 10px;
+  font-size: 0.82rem;
+  padding: 6px 10px;
   white-space: nowrap;
 }
 
