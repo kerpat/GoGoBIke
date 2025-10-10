@@ -860,6 +860,7 @@ body {
   font-size: .95rem;
   transition: background var(--transition-fast);
   background: var(--surface);
+  vertical-align: middle;
 }
 
 /* Специальные стили для секции аренд */
@@ -883,6 +884,7 @@ body {
 #rentals-table td {
   padding: 8px 10px;
   font-size: .88rem;
+  vertical-align: middle;
 }
 
 .admin-table thead th {
@@ -957,6 +959,7 @@ body {
   display: flex;
   gap: 8px;
   white-space: nowrap;
+  align-items: center;
 }
 
 .admin-table button {
@@ -975,7 +978,7 @@ body {
 }
 
 /* Подсветка просроченных аренд */
-.admin-table tbody tr.rental-overdue {
+.admin-table tbody tr.rental-overdue td {
   background: #fee;
 }
 
@@ -983,7 +986,7 @@ body {
   border-left: 4px solid #e53e3e;
 }
 
-.admin-table tbody tr.rental-overdue:hover {
+.admin-table tbody tr.rental-overdue:hover td {
   background: #fdd;
 }
 
@@ -2210,6 +2213,7 @@ select:focus::placeholder {
   /* Разрешаем flex-элементам переноситься на новую строку */
   gap: 6px;
   /* Отступы между кнопками */
+  vertical-align: middle;
 }
 
 /* 3. Оптимизация ширины колонок для таблицы аренд */
