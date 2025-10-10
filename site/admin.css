@@ -987,10 +987,6 @@ body {
   background: #fdd;
 }
 
-.admin-table tbody tr.rental-overdue td {
-  border-bottom-color: #fcc;
-}
-
 .overdue-label {
   color: #e53e3e;
   font-weight: 600;
