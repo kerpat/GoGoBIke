@@ -819,23 +819,19 @@ body {
   width: 100%;
   overflow-x: auto;
   margin-bottom: 20px;
-}
-
-@media (max-width: 1400px) {
-  .table-container {
-    border-radius: 12px;
-    box-shadow: inset -10px 0 10px -10px rgba(0,0,0,0.1);
-  }
+  margin-left: -12px;
+  margin-right: -12px;
+  padding: 0 12px;
+  position: relative;
 }
 
 .table-container::-webkit-scrollbar {
-  height: 6px;
+  height: 8px;
 }
 
 .table-container::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #f0f0f0;
   border-radius: 10px;
-  margin: 0 12px;
 }
 
 .table-container::-webkit-scrollbar-thumb {
@@ -864,6 +860,16 @@ body {
   font-size: .95rem;
   transition: background var(--transition-fast);
   background: var(--surface);
+}
+
+/* Специальные стили для секции аренд */
+#rentals-section {
+  overflow: visible;
+}
+
+#rentals-section .section-header {
+  padding: 0 12px;
+  margin-bottom: 20px;
 }
 
 /* Специальные стили ТОЛЬКО для таблицы аренд */
@@ -934,6 +940,10 @@ body {
 
 .admin-table tbody tr:hover {
   background: #fbfdfb;
+}
+
+/* Только для таблиц вне container добавляем сдвиг */
+.admin-table:not(.table-container .admin-table) tbody tr:hover {
   transform: translateX(4px);
 }
 
@@ -961,18 +971,10 @@ body {
 /* Подсветка просроченных аренд */
 .admin-table tbody tr.rental-overdue {
   background: #fee;
-  position: relative;
 }
 
-.admin-table tbody tr.rental-overdue::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background: #e53e3e;
-  border-radius: 0 2px 2px 0;
+.admin-table tbody tr.rental-overdue td:first-child {
+  border-left: 4px solid #e53e3e;
 }
 
 .admin-table tbody tr.rental-overdue:hover {
