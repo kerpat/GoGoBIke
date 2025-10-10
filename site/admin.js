@@ -5,6 +5,52 @@
 // платежей. Для работы с реальной базой требуется Supabase.
 
 document.addEventListener('DOMContentLoaded', () => {
+    // --- Универсальная система отслеживания изменений в модалках ---
+    let modalHasChanges = false;
+    let originalFormData = {};
+    
+    function trackModalChanges(modalElement) {
+        const form = modalElement.querySelector('form') || modalElement;
+        const inputs = form.querySelectorAll('input, textarea, select');
+        
+        // Сохраняем исходные значения
+        originalFormData = {};
+        inputs.forEach(input => {
+            if (input.type === 'checkbox') {
+                originalFormData[input.id || input.name] = input.checked;
+            } else {
+                originalFormData[input.id || input.name] = input.value;
+            }
+        });
+        
+        modalHasChanges = false;
+        
+        // Отслеживаем изменения
+        inputs.forEach(input => {
+            input.addEventListener('input', () => {
+                const currentValue = input.type === 'checkbox' ? input.checked : input.value;
+                const originalValue = originalFormData[input.id || input.name];
+                modalHasChanges = currentValue !== originalValue;
+            });
+        });
+    }
+    
+    function confirmModalClose(modalElement, callback) {
+        if (modalHasChanges) {
+            if (confirm('Вы уверены, что хотите выйти? Несохранённые данные будут потеряны.')) {
+                modalHasChanges = false;
+                callback();
+            }
+        } else {
+            callback();
+        }
+    }
+    
+    function resetModalTracking() {
+        modalHasChanges = false;
+        originalFormData = {};
+    }
+    
     // --- DOM Elements ---
     const loginSection = document.getElementById('login-section');
     const dashboardSection = document.getElementById('dashboard-section');
@@ -1210,16 +1256,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         updateBatteryStepDisplay();
+        resetModalTracking();
+        trackModalChanges(batteryModal);
     }
 
     function hideBatteryModal() {
-        batteryModal.classList.add('hidden');
-        currentBatteryStep = 1;
-        batteryIdInput.value = '';
-        batterySerialNumberInput.value = '';
-        batteryCapacityInput.value = '';
-        batteryDescriptionInput.value = '';
-        batteryStatusSelect.value = 'available';
+        confirmModalClose(batteryModal, () => {
+            batteryModal.classList.add('hidden');
+            currentBatteryStep = 1;
+            batteryIdInput.value = '';
+            batterySerialNumberInput.value = '';
+            batteryCapacityInput.value = '';
+            batteryDescriptionInput.value = '';
+            batteryStatusSelect.value = 'available';
+            resetModalTracking();
+        });
     }
 
     function updateBatteryStepDisplay() {
@@ -1288,6 +1339,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (batteryAddBtn) batteryAddBtn.addEventListener('click', () => showBatteryModal());
     if (batteryModalCloseBtn) batteryModalCloseBtn.addEventListener('click', hideBatteryModal);
+    
+    // Close battery modal on overlay click
+    batteryModal.addEventListener('click', (e) => {
+        if (e.target === batteryModal) {
+            hideBatteryModal();
+        }
+    });
 
     if (batteryPrevBtn) {
         batteryPrevBtn.addEventListener('click', () => {
@@ -1331,7 +1389,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     : await supabase.from('batteries').insert([batteryData]);
                 if (error) throw error;
                 await loadBatteries();
-                hideBatteryModal();
+                resetModalTracking(); // Сбрасываем флаг изменений после успешного сохранения
+                batteryModal.classList.add('hidden'); // Закрываем без подтверждения
+                currentBatteryStep = 1;
+                batteryIdInput.value = '';
+                batterySerialNumberInput.value = '';
+                batteryCapacityInput.value = '';
+                batteryDescriptionInput.value = '';
+                batteryStatusSelect.value = 'available';
             } catch (err) {
                 alert('Ошибка сохранения аккумулятора: ' + err.message);
             }
@@ -3519,22 +3584,30 @@ document.addEventListener('DOMContentLoaded', () => {
             tariffAddBtn.addEventListener('click', () => {
                 resetTariffModal();
                 tariffModal.classList.remove('hidden');
+                resetModalTracking();
+                trackModalChanges(tariffModal);
             });
         }
 
         // Close modal
         if (tariffModalCloseBtn) {
             tariffModalCloseBtn.addEventListener('click', () => {
-                tariffModal.classList.add('hidden');
-                resetTariffModal();
+                confirmModalClose(tariffModal, () => {
+                    tariffModal.classList.add('hidden');
+                    resetTariffModal();
+                    resetModalTracking();
+                });
             });
         }
 
         // Close on overlay click
         tariffModal.addEventListener('click', (e) => {
             if (e.target === tariffModal) {
-                tariffModal.classList.add('hidden');
-                resetTariffModal();
+                confirmModalClose(tariffModal, () => {
+                    tariffModal.classList.add('hidden');
+                    resetTariffModal();
+                    resetModalTracking();
+                });
             }
         });
 
@@ -3607,6 +3680,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (result.error) throw result.error;
 
                     alert(editingTariffId ? 'Тариф успешно обновлен' : 'Тариф успешно создан');
+                    resetModalTracking(); // Сбрасываем флаг изменений после успешного сохранения
                     tariffModal.classList.add('hidden');
                     resetTariffModal();
                     await loadTariffs();
@@ -3644,6 +3718,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 showTariffStep(1);
                 tariffModal.classList.remove('hidden');
+                resetModalTracking();
+                trackModalChanges(tariffModal);
 
             } catch (err) {
                 alert('Ошибка загрузки тарифа: ' + err.message);
@@ -3720,22 +3796,30 @@ document.addEventListener('DOMContentLoaded', () => {
             bikeAddBtn.addEventListener('click', () => {
                 resetBikeModal();
                 bikeModal.classList.remove('hidden');
+                resetModalTracking();
+                trackModalChanges(bikeModal);
             });
         }
 
         // Close modal
         if (bikeModalCloseBtn) {
             bikeModalCloseBtn.addEventListener('click', () => {
-                bikeModal.classList.add('hidden');
-                resetBikeModal();
+                confirmModalClose(bikeModal, () => {
+                    bikeModal.classList.add('hidden');
+                    resetBikeModal();
+                    resetModalTracking();
+                });
             });
         }
 
         // Close on overlay click
         bikeModal.addEventListener('click', (e) => {
             if (e.target === bikeModal) {
-                bikeModal.classList.add('hidden');
-                resetBikeModal();
+                confirmModalClose(bikeModal, () => {
+                    bikeModal.classList.add('hidden');
+                    resetBikeModal();
+                    resetModalTracking();
+                });
             }
         });
 
@@ -3792,6 +3876,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (result.error) throw result.error;
 
                     alert(editingBikeId ? 'Велосипед успешно обновлен' : 'Велосипед успешно создан');
+                    resetModalTracking(); // Сбрасываем флаг изменений после успешного сохранения
                     bikeModal.classList.add('hidden');
                     resetBikeModal();
                     await loadBikes();
@@ -3825,6 +3910,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 showBikeStep(1);
                 bikeModal.classList.remove('hidden');
+                resetModalTracking();
+                trackModalChanges(bikeModal);
 
             } catch (err) {
                 alert('Ошибка загрузки велосипеда: ' + err.message);
