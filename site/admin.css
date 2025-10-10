@@ -995,6 +995,8 @@ body {
 .admin-table tbody tr.rental-overdue td:first-child {
   border-left: 4px solid #e53e3e;
   padding-left: 10px;
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
 }
 
 .admin-table tbody tr.rental-overdue:hover td {
