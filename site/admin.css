@@ -171,7 +171,8 @@ body {
   border-radius: 24px;
   box-shadow: var(--shadow-hover);
   padding: 20px;
-  transition: box-shadow var(--transition-smooth);
+  transition: box-shadow var(--transition-smooth), max-width 0.3s ease-in-out;
+  overflow: hidden;
 }
 
 #admin-app:hover {
@@ -817,10 +818,10 @@ body {
 /* Container для широких таблиц с прокруткой */
 .table-container {
   width: 100%;
+  max-width: 100%;
   overflow-x: auto;
   margin-bottom: 20px;
   position: relative;
-  padding: 0 12px;
 }
 
 .table-container::-webkit-scrollbar {
@@ -849,6 +850,7 @@ body {
   background: transparent;
   margin-bottom: 20px;
   table-layout: auto;
+  box-sizing: border-box;
 }
 
 .admin-table th,
@@ -864,10 +866,16 @@ body {
 #rentals-section {
   overflow: visible;
   padding: 0 !important;
+  box-sizing: border-box;
 }
 
 #rentals-section .section-header {
-  padding: 0 12px;
+  padding: 0;
+  margin-bottom: 15px;
+}
+
+#rentals-section .table-container {
+  box-sizing: border-box;
 }
 
 /* Специальные стили ТОЛЬКО для таблицы аренд */
@@ -2167,24 +2175,9 @@ select:focus::placeholder {
   /* Запрещаем перенос текста внутри кнопок */
 }
 
-/*
- * Стили для автоматического расширения основного контейнера
- * на странице "Аренды"
- */
-
-/* 1. По умолчанию контейнер имеет максимальную ширину 1280px */
-#admin-app {
-  width: 100%;
-  max-width: 1280px;
-  /* Это ваш стандартный размер */
-  transition: max-width 0.3s ease-in-out;
-  /* Плавный переход ширины */
-}
-
-/* 2. Когда JS добавляет класс .wide-content, мы увеличиваем максимальную ширину */
+/* Расширение контейнера для страницы "Аренды" */
 #admin-app.wide-content {
   max-width: 1440px;
-  /* Новая, увеличенная ширина. Можете подобрать значение по вкусу. */
 }
 
 /*
