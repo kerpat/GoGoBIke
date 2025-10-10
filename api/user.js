@@ -327,6 +327,48 @@ async function handleUnbindPaymentMethod({ userId }) {
     return { status: 200, body: { success: true, message: 'Payment method successfully unbound.' } };
 }
 
+async function handleCompleteInspection(body) {
+    const { rentalId, photos } = body;
+
+    if (!rentalId) {
+        return { status: 400, body: { error: 'Rental ID is required' } };
+    }
+
+    try {
+        const supabaseAdmin = createSupabaseAdmin();
+
+        // Получаем текущие данные аренды
+        const { data: rental, error: fetchError } = await supabaseAdmin
+            .from('rentals')
+            .select('extra_data')
+            .eq('id', rentalId)
+            .single();
+
+        if (fetchError) throw fetchError;
+
+        // Обновляем extra_data с информацией о фотоконтроле
+        const updatedExtraData = {
+            ...rental.extra_data,
+            pre_rental_photos: {
+                ...photos,
+                completed_at: new Date().toISOString()
+            }
+        };
+
+        const { error: updateError } = await supabaseAdmin
+            .from('rentals')
+            .update({ extra_data: updatedExtraData })
+            .eq('id', rentalId);
+
+        if (updateError) throw updateError;
+
+        return { status: 200, body: { success: true, message: 'Inspection completed successfully' } };
+    } catch (error) {
+        console.error('Error completing inspection:', error);
+        return { status: 500, body: { error: error.message } };
+    }
+}
+
 
 async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -364,6 +406,9 @@ async function handler(req, res) {
                 break;
             case 'unbind-payment-method':
                 result = await handleUnbindPaymentMethod(body);
+                break;
+            case 'complete-inspection':
+                result = await handleCompleteInspection(body);
                 break;
             default:
                 result = { status: 400, body: { error: 'Invalid action' } };

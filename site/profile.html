@@ -1631,12 +1631,11 @@
                         
                         const formData = new FormData();
                         formData.append('file', file);
-                        formData.append('userId', userId);
                         formData.append('rentalId', currentInspectionRentalId);
                         formData.append('photoType', type);
-                        formData.append('uploadType', 'inspection');
                         
-                        const response = await fetch('/api/upload', {
+                        // Загружаем на свой сервер вместо Supabase
+                        const response = await fetch(`${CONTRACTS_API_URL}/upload-inspection`, {
                             method: 'POST',
                             body: formData
                         });
