@@ -988,11 +988,12 @@ body {
 }
 
 /* Подсветка просроченных аренд */
-.admin-table tbody tr.rental-overdue {
+.admin-table tbody tr.rental-overdue td {
+  background: #fee;
   position: relative;
 }
 
-.admin-table tbody tr.rental-overdue::before {
+.admin-table tbody tr.rental-overdue td:first-child::before {
   content: '';
   position: absolute;
   left: 0;
@@ -1000,11 +1001,6 @@ body {
   bottom: 0;
   width: 4px;
   background: #e53e3e;
-  border-radius: 4px 0 0 4px;
-}
-
-.admin-table tbody tr.rental-overdue td {
-  background: #fee;
 }
 
 .admin-table tbody tr.rental-overdue td:first-child {
