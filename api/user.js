@@ -64,17 +64,19 @@ async function handleGetPendingContracts({ userId }) {
         return { status: 400, body: { error: 'userId is required.' } };
     }
     const supabaseAdmin = createSupabaseAdmin();
+    
+    // Получаем аренды ожидающие подписи договора или акта возврата
     const { data, error } = await supabaseAdmin
         .from('rentals')
         .select('id, status, bike_id, tariffs(title), bikes(*)')
         .eq('user_id', userId)
-        .eq('status', 'awaiting_contract_signing');
+        .in('status', ['awaiting_contract_signing', 'awaiting_return_signature']);
 
     if (error) {
         throw new Error('Failed to fetch pending contracts: ' + error.message);
     }
 
-    return { status: 200, body: { rentals: data } };
+    return { status: 200, body: { rentals: data || [] } };
 }
 
 async function handleGetContractDetails({ userId, rentalId }) {
@@ -328,7 +330,7 @@ async function handleUnbindPaymentMethod({ userId }) {
 }
 
 async function handleCompleteInspection(body) {
-    const { rentalId, photos } = body;
+    const { rentalId } = body;
 
     if (!rentalId) {
         return { status: 400, body: { error: 'Rental ID is required' } };
@@ -346,11 +348,12 @@ async function handleCompleteInspection(body) {
 
         if (fetchError) throw fetchError;
 
-        // Обновляем extra_data с информацией о фотоконтроле
+        // Помечаем фотоконтроль как завершённый
+        // Фактические URL файлов добавятся позже фоновой загрузкой
         const updatedExtraData = {
             ...rental.extra_data,
             pre_rental_photos: {
-                ...photos,
+                ...rental.extra_data?.pre_rental_photos,
                 completed_at: new Date().toISOString()
             }
         };

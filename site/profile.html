@@ -1017,15 +1017,22 @@
                 notificationsList.innerHTML = '<p>Загрузка уведомлений...</p>';
 
                 try {
+                    // Добавляем таймаут 10 секунд
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 10000);
+                    
                     const response = await fetch(`${CONTRACTS_API_URL}/api/user`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'get-pending-contracts', userId: userId })
+                        body: JSON.stringify({ action: 'get-pending-contracts', userId: userId }),
+                        signal: controller.signal
                     });
+                    
+                    clearTimeout(timeoutId);
                     const result = await response.json();
                     if (!response.ok) throw new Error(result.error || 'Server error');
 
-                    const notifications = result.notifications || [];
+                    const notifications = result.rentals || [];
                     const countEl = document.getElementById('notifications-count');
 
                     if (notifications.length > 0) {
@@ -1054,7 +1061,11 @@
                     }
                 } catch (error) {
                     console.error('Error loading notifications:', error);
-                    notificationsList.innerHTML = `<p style="color:red;">Ошибка загрузки уведомлений.</p>`;
+                    if (error.name === 'AbortError') {
+                        notificationsList.innerHTML = `<p style="color:red;">Превышено время ожидания. Попробуйте позже.</p>`;
+                    } else {
+                        notificationsList.innerHTML = `<p style="color:red;">Ошибка загрузки уведомлений: ${error.message}</p>`;
+                    }
                 }
             }
 
@@ -1594,14 +1605,14 @@
             async function completeInspection() {
                 try {
                     // Сохраняем статус завершения фотоконтроля
+                    // Файлы уже загружаются в фоне на сервере
                     const response = await fetch(`${CONTRACTS_API_URL}/api/user`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             action: 'complete-inspection',
                             userId,
-                            rentalId: currentInspectionRentalId,
-                            photos: uploadedFiles
+                            rentalId: currentInspectionRentalId
                         })
                     });
                     
@@ -1609,7 +1620,7 @@
                     if (!response.ok) throw new Error(result.error || 'Ошибка сохранения');
                     
                     document.getElementById('photo-inspection-modal').classList.add('hidden');
-                    alert('Фотоконтроль успешно пройден! Теперь вы можете подписать договор.');
+                    alert('Фотоконтроль успешно пройден! Файлы загружаются на сервер. Теперь вы можете подписать договор.');
                     loadNotifications();
                 } catch (error) {
                     alert('Ошибка завершения фотоконтроля: ' + error.message);
@@ -1643,7 +1654,8 @@
                         const result = await response.json();
                         if (!response.ok) throw new Error(result.error || 'Ошибка загрузки');
                         
-                        uploadedFiles[type] = result.url;
+                        // Сервер принял файл, загрузка в Supabase идёт в фоне
+                        uploadedFiles[type] = true; // Помечаем что файл загружен
                         
                         // Обновляем отображение шага
                         renderInspectionStep();
