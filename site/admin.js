@@ -1558,7 +1558,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const overdueTime = isOverdue ? calculateOverdue(r.current_period_ends_at) : null;
                 
                 if (isOverdue && overdueTime) {
-                    endDisplay += `<br><span class="overdue-badge">⚠️ +${overdueTime}</span>`;
+                    endDisplay += `<br><span class="overdue-badge">Просрочка: ${overdueTime}</span>`;
                     tr.classList.add('rental-overdue');
                 }
 
@@ -1572,8 +1572,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (contractUrl) {
                     actionsCell += ` <a href="${contractUrl}" target="_blank" class="btn-link">Акт приёма</a>`;
                 }
+                
+                // Акт сдачи всегда видим, но серый если нет
                 if (returnActUrl) {
                     actionsCell += ` <a href="${returnActUrl}" target="_blank" class="btn-link">Акт сдачи</a>`;
+                } else {
+                    actionsCell += ` <span class="btn-link btn-disabled">Акт сдачи</span>`;
                 }
 
                 if (r.status === 'active') {
