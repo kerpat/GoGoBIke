@@ -1591,10 +1591,29 @@
                 }
             }
             
-            function completeInspection() {
-                document.getElementById('photo-inspection-modal').classList.add('hidden');
-                alert('Фотоконтроль успешно пройден! Теперь вы можете подписать договор.');
-                loadNotifications();
+            async function completeInspection() {
+                try {
+                    // Сохраняем статус завершения фотоконтроля
+                    const response = await fetch(`${CONTRACTS_API_URL}/api/user`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'complete-inspection',
+                            userId,
+                            rentalId: currentInspectionRentalId,
+                            photos: uploadedFiles
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.error || 'Ошибка сохранения');
+                    
+                    document.getElementById('photo-inspection-modal').classList.add('hidden');
+                    alert('Фотоконтроль успешно пройден! Теперь вы можете подписать договор.');
+                    loadNotifications();
+                } catch (error) {
+                    alert('Ошибка завершения фотоконтроля: ' + error.message);
+                }
             }
             
             // Обработка выбора файлов
