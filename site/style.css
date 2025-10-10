@@ -1178,11 +1178,13 @@ body:has(.map-page-container) #map {
 /* === СТИЛИ ДЛЯ ФОТОКОНТРОЛЯ === */
 .inspection-modal {
   max-width: 500px !important;
+  padding: 30px !important;
 }
 
 .inspection-progress-container {
   margin-bottom: 30px;
   text-align: center;
+  padding: 0 10px;
 }
 
 .inspection-progress-bar {
@@ -1208,9 +1210,14 @@ body:has(.map-page-container) #map {
   font-weight: 500;
 }
 
+.inspection-modal h2 {
+  padding: 0 20px;
+  margin: 20px 0 10px 0 !important;
+}
+
 .inspection-step-content {
   text-align: center;
-  padding: 20px 0;
+  padding: 20px 15px;
 }
 
 .inspection-step-icon {
@@ -1239,6 +1246,7 @@ body:has(.map-page-container) #map {
   font-weight: 600;
   color: var(--dark-green);
   margin: 0 0 10px 0;
+  padding: 0 10px;
 }
 
 .inspection-step-description {
@@ -1246,6 +1254,7 @@ body:has(.map-page-container) #map {
   font-size: 14px;
   margin: 0 0 30px 0;
   line-height: 1.5;
+  padding: 0 10px;
 }
 
 .inspection-preview-area {
@@ -1254,6 +1263,7 @@ body:has(.map-page-container) #map {
   align-items: center;
   justify-content: center;
   margin: 20px 0;
+  padding: 0 15px;
 }
 
 .upload-success {
@@ -1305,12 +1315,18 @@ body:has(.map-page-container) #map {
   gap: 10px;
   justify-content: center;
   margin-top: 20px;
+  padding: 0 15px;
 }
 
 .btn-large {
   padding: 15px 40px;
   font-size: 16px;
   font-weight: 600;
+}
+
+.inspection-modal .modal-close {
+  top: 20px;
+  right: 20px;
 }
 
 @keyframes spin {
@@ -1325,6 +1341,36 @@ body:has(.map-page-container) #map {
   to {
     transform: scale(1);
     opacity: 1;
+  }
+}
+
+/* Адаптив для фотоконтроля на мобильных */
+@media (max-width: 600px) {
+  .inspection-modal {
+    max-width: 95% !important;
+    padding: 20px !important;
+  }
+  
+  .inspection-step-icon {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .inspection-step-title {
+    font-size: 18px;
+  }
+  
+  .btn-large {
+    padding: 12px 30px;
+    font-size: 15px;
+  }
+  
+  .inspection-actions {
+    flex-direction: column;
+  }
+  
+  .inspection-actions button {
+    width: 100%;
   }
 }
 
