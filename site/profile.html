@@ -586,78 +586,30 @@
     
     <!-- Модальное окно для фотоконтроля велосипеда -->
     <div id="photo-inspection-modal" class="modal-overlay hidden">
-        <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-content inspection-modal">
             <button class="modal-close" id="photo-inspection-close">&times;</button>
-            <h2 style="text-align: center;">Фотоконтроль велосипеда</h2>
-            <p style="text-align: center; color: #556f6b; margin-bottom: 20px;">
-                Пожалуйста, сфотографируйте велосипед с 4 сторон и запишите видео осмотра
-            </p>
             
-            <div id="photo-inspection-steps">
-                <!-- Шаг 1: Фото спереди -->
-                <div class="inspection-step" data-step="photo_front">
-                    <div class="step-header">
-                        <span class="step-number">1</span>
-                        <h3>Фото спереди</h3>
-                        <span class="step-status">⏳</span>
-                    </div>
-                    <input type="file" accept="image/*" capture="environment" class="inspection-file-input" data-type="photo_front" style="display: none;">
-                    <button class="btn btn-secondary inspection-upload-btn" data-type="photo_front">📷 Сделать фото</button>
-                    <div class="inspection-preview" data-type="photo_front"></div>
+            <!-- Прогресс-бар -->
+            <div class="inspection-progress-container">
+                <div class="inspection-progress-bar">
+                    <div class="inspection-progress-fill" id="inspection-progress-fill"></div>
                 </div>
-
-                <!-- Шаг 2: Фото сзади -->
-                <div class="inspection-step" data-step="photo_back">
-                    <div class="step-header">
-                        <span class="step-number">2</span>
-                        <h3>Фото сзади</h3>
-                        <span class="step-status">⏳</span>
-                    </div>
-                    <input type="file" accept="image/*" capture="environment" class="inspection-file-input" data-type="photo_back" style="display: none;">
-                    <button class="btn btn-secondary inspection-upload-btn" data-type="photo_back">📷 Сделать фото</button>
-                    <div class="inspection-preview" data-type="photo_back"></div>
-                </div>
-
-                <!-- Шаг 3: Фото слева -->
-                <div class="inspection-step" data-step="photo_left">
-                    <div class="step-header">
-                        <span class="step-number">3</span>
-                        <h3>Фото слева</h3>
-                        <span class="step-status">⏳</span>
-                    </div>
-                    <input type="file" accept="image/*" capture="environment" class="inspection-file-input" data-type="photo_left" style="display: none;">
-                    <button class="btn btn-secondary inspection-upload-btn" data-type="photo_left">📷 Сделать фото</button>
-                    <div class="inspection-preview" data-type="photo_left"></div>
-                </div>
-
-                <!-- Шаг 4: Фото справа -->
-                <div class="inspection-step" data-step="photo_right">
-                    <div class="step-header">
-                        <span class="step-number">4</span>
-                        <h3>Фото справа</h3>
-                        <span class="step-status">⏳</span>
-                    </div>
-                    <input type="file" accept="image/*" capture="environment" class="inspection-file-input" data-type="photo_right" style="display: none;">
-                    <button class="btn btn-secondary inspection-upload-btn" data-type="photo_right">📷 Сделать фото</button>
-                    <div class="inspection-preview" data-type="photo_right"></div>
-                </div>
-
-                <!-- Шаг 5: Видео осмотра -->
-                <div class="inspection-step" data-step="video_inspection">
-                    <div class="step-header">
-                        <span class="step-number">5</span>
-                        <h3>Видео осмотра (круговой обзор)</h3>
-                        <span class="step-status">⏳</span>
-                    </div>
-                    <input type="file" accept="video/*" capture="environment" class="inspection-file-input" data-type="video_inspection" style="display: none;">
-                    <button class="btn btn-secondary inspection-upload-btn" data-type="video_inspection">🎥 Записать видео</button>
-                    <div class="inspection-preview" data-type="video_inspection"></div>
-                </div>
+                <p class="inspection-progress-text">Шаг <span id="current-step-number">1</span> из 5</p>
             </div>
 
-            <div style="margin-top: 20px; text-align: center;">
-                <button id="complete-inspection-btn" class="btn btn-primary" disabled>Завершить фотоконтроль</button>
+            <h2 style="text-align: center; margin-bottom: 10px;">Фотоконтроль велосипеда</h2>
+            
+            <!-- Контейнер для текущего шага -->
+            <div id="inspection-current-step">
+                <!-- Сюда динамически вставляется шаг -->
             </div>
+
+            <!-- Скрытые input для загрузки -->
+            <input type="file" accept="image/*" capture="environment" class="inspection-file-input" data-type="photo_front" style="display: none;">
+            <input type="file" accept="image/*" capture="environment" class="inspection-file-input" data-type="photo_back" style="display: none;">
+            <input type="file" accept="image/*" capture="environment" class="inspection-file-input" data-type="photo_left" style="display: none;">
+            <input type="file" accept="image/*" capture="environment" class="inspection-file-input" data-type="photo_right" style="display: none;">
+            <input type="file" accept="video/*" capture="environment" class="inspection-file-input" data-type="video_inspection" style="display: none;">
         </div>
     </div>
     
@@ -1523,6 +1475,15 @@
             
             let currentInspectionRentalId = null;
             const uploadedFiles = {};
+            let currentInspectionStep = 0;
+            
+            const inspectionSteps = [
+                { type: 'photo_front', title: 'Сфотографируйте велосипед спереди', description: 'Убедитесь, что видна передняя часть велосипеда целиком', isVideo: false },
+                { type: 'photo_back', title: 'Сфотографируйте велосипед сзади', description: 'Убедитесь, что видна задняя часть велосипеда целиком', isVideo: false },
+                { type: 'photo_left', title: 'Сфотографируйте велосипед слева', description: 'Убедитесь, что велосипед виден полностью с левой стороны', isVideo: false },
+                { type: 'photo_right', title: 'Сфотографируйте велосипед справа', description: 'Убедитесь, что велосипед виден полностью с правой стороны', isVideo: false },
+                { type: 'video_inspection', title: 'Запишите видео круговой обзор', description: 'Снимите короткое видео, обходя велосипед по кругу (10-15 секунд)', isVideo: true }
+            ];
             
             // Изменяем логику открытия договора - сначала проверяем фотоконтроль
             const originalOpenContractModal = openContractModal;
@@ -1556,27 +1517,85 @@
             
             function openPhotoInspectionModal(rentalId) {
                 currentInspectionRentalId = rentalId;
-                document.getElementById('photo-inspection-modal').classList.remove('hidden');
-                resetInspectionForm();
-            }
-            
-            function resetInspectionForm() {
+                currentInspectionStep = 0;
                 Object.keys(uploadedFiles).forEach(key => delete uploadedFiles[key]);
-                document.querySelectorAll('.inspection-step').forEach(step => {
-                    step.querySelector('.step-status').textContent = '⏳';
-                    step.querySelector('.inspection-preview').innerHTML = '';
-                });
-                document.getElementById('complete-inspection-btn').disabled = true;
+                document.getElementById('photo-inspection-modal').classList.remove('hidden');
+                renderInspectionStep();
             }
             
-            // Обработка кнопок загрузки
-            document.querySelectorAll('.inspection-upload-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const type = e.target.dataset.type;
-                    const input = document.querySelector(`input.inspection-file-input[data-type="${type}"]`);
-                    input.click();
-                });
-            });
+            function renderInspectionStep() {
+                const step = inspectionSteps[currentInspectionStep];
+                const progress = ((currentInspectionStep + 1) / inspectionSteps.length) * 100;
+                
+                document.getElementById('inspection-progress-fill').style.width = progress + '%';
+                document.getElementById('current-step-number').textContent = currentInspectionStep + 1;
+                
+                const isUploaded = uploadedFiles[step.type];
+                const container = document.getElementById('inspection-current-step');
+                
+                container.innerHTML = `
+                    <div class="inspection-step-content">
+                        <div class="inspection-step-icon ${step.isVideo ? 'video' : 'photo'}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                ${step.isVideo 
+                                    ? '<path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>'
+                                    : '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>'
+                                }
+                            </svg>
+                        </div>
+                        <h3 class="inspection-step-title">${step.title}</h3>
+                        <p class="inspection-step-description">${step.description}</p>
+                        
+                        <div class="inspection-preview-area" id="preview-area">
+                            ${isUploaded ? '<div class="upload-success"><svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#26b999" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg><p>Загружено успешно</p></div>' : ''}
+                        </div>
+                        
+                        <div class="inspection-actions">
+                            ${!isUploaded 
+                                ? `<button class="btn btn-primary btn-large" id="upload-btn">${step.isVideo ? 'Записать видео' : 'Сделать фото'}</button>`
+                                : `<button class="btn btn-secondary" id="retake-btn">Переснять</button>
+                                   <button class="btn btn-primary" id="next-btn">${currentInspectionStep < inspectionSteps.length - 1 ? 'Следующий шаг' : 'Завершить'}</button>`
+                            }
+                        </div>
+                    </div>
+                `;
+                
+                // Привязываем события
+                const uploadBtn = document.getElementById('upload-btn');
+                const retakeBtn = document.getElementById('retake-btn');
+                const nextBtn = document.getElementById('next-btn');
+                
+                if (uploadBtn) {
+                    uploadBtn.addEventListener('click', () => {
+                        const input = document.querySelector(`input.inspection-file-input[data-type="${step.type}"]`);
+                        input.click();
+                    });
+                }
+                
+                if (retakeBtn) {
+                    retakeBtn.addEventListener('click', () => {
+                        delete uploadedFiles[step.type];
+                        renderInspectionStep();
+                    });
+                }
+                
+                if (nextBtn) {
+                    nextBtn.addEventListener('click', () => {
+                        if (currentInspectionStep < inspectionSteps.length - 1) {
+                            currentInspectionStep++;
+                            renderInspectionStep();
+                        } else {
+                            completeInspection();
+                        }
+                    });
+                }
+            }
+            
+            function completeInspection() {
+                document.getElementById('photo-inspection-modal').classList.add('hidden');
+                alert('Фотоконтроль успешно пройден! Теперь вы можете подписать договор.');
+                loadNotifications();
+            }
             
             // Обработка выбора файлов
             document.querySelectorAll('.inspection-file-input').forEach(input => {
@@ -1585,14 +1604,12 @@
                     if (!file) return;
                     
                     const type = e.target.dataset.type;
-                    const step = document.querySelector(`.inspection-step[data-step="${type}"]`);
-                    const statusEl = step.querySelector('.step-status');
-                    const previewEl = step.querySelector('.inspection-preview');
-                    
-                    statusEl.textContent = '⏳ Загрузка...';
+                    const previewArea = document.getElementById('preview-area');
                     
                     try {
-                        // Загружаем файл на сервер
+                        // Показываем индикатор загрузки
+                        previewArea.innerHTML = '<div class="upload-loading"><div class="spinner"></div><p>Загрузка...</p></div>';
+                        
                         const formData = new FormData();
                         formData.append('file', file);
                         formData.append('userId', userId);
@@ -1609,38 +1626,17 @@
                         if (!response.ok) throw new Error(result.error || 'Ошибка загрузки');
                         
                         uploadedFiles[type] = result.url;
-                        statusEl.textContent = '✅';
                         
-                        // Показываем превью
-                        if (type.startsWith('photo_')) {
-                            previewEl.innerHTML = `<img src="${URL.createObjectURL(file)}" style="max-width: 100px; max-height: 100px; border-radius: 8px; margin-top: 10px;">`;
-                        } else {
-                            previewEl.innerHTML = `<p style="color: green; margin-top: 10px;">✅ Видео загружено</p>`;
-                        }
-                        
-                        // Проверяем, все ли файлы загружены
-                        checkInspectionCompletion();
+                        // Обновляем отображение шага
+                        renderInspectionStep();
                         
                     } catch (error) {
-                        statusEl.textContent = '❌';
-                        alert('Ошибка загрузки: ' + error.message);
+                        previewArea.innerHTML = '<div class="upload-error"><p>Ошибка загрузки: ' + error.message + '</p></div>';
+                        setTimeout(() => renderInspectionStep(), 2000);
                     }
+                    
+                    e.target.value = '';
                 });
-            });
-            
-            function checkInspectionCompletion() {
-                const requiredTypes = ['photo_front', 'photo_back', 'photo_left', 'photo_right', 'video_inspection'];
-                const allUploaded = requiredTypes.every(type => uploadedFiles[type]);
-                
-                document.getElementById('complete-inspection-btn').disabled = !allUploaded;
-            }
-            
-            // Завершение фотоконтроля
-            document.getElementById('complete-inspection-btn').addEventListener('click', () => {
-                document.getElementById('photo-inspection-modal').classList.add('hidden');
-                alert('Фотоконтроль успешно пройден! Теперь вы можете подписать договор.');
-                // Перезагружаем страницу или обновляем уведомления
-                loadNotifications();
             });
             
             // Закрытие модального окна

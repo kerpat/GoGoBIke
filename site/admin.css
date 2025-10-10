@@ -814,6 +814,32 @@ body {
   width: 100%;
 }
 
+/* Container для таблиц с прокруткой */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  margin-bottom: 20px;
+  border-radius: 12px;
+}
+
+.table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: var(--icon-green);
+  border-radius: 10px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: var(--dark-green);
+}
+
 /* Tables with row hover animations */
 .admin-table {
   width: 100%;
@@ -821,14 +847,15 @@ body {
   border-spacing: 0 4px;
   background: transparent;
   margin-bottom: 20px;
-  table-layout: fixed;
+  table-layout: auto;
+  min-width: 1200px;
 }
 
 .admin-table th,
 .admin-table td {
   text-align: left;
-  padding: 12px 14px;
-  font-size: .95rem;
+  padding: 8px 10px;
+  font-size: .88rem;
   transition: background var(--transition-fast);
   background: var(--surface);
 }
@@ -921,12 +948,22 @@ body {
 /* Подсветка просроченных аренд */
 .admin-table tbody tr.rental-overdue {
   background: #fee;
-  border-left: 4px solid #e53e3e;
+  position: relative;
+}
+
+.admin-table tbody tr.rental-overdue::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #e53e3e;
+  border-radius: 0 2px 2px 0;
 }
 
 .admin-table tbody tr.rental-overdue:hover {
   background: #fdd;
-  transform: translateX(4px);
 }
 
 .admin-table tbody tr.rental-overdue td {
@@ -948,13 +985,14 @@ body {
   display: inline-block;
   color: #e53e3e;
   font-weight: 700;
-  font-size: 0.8rem;
-  padding: 3px 8px;
+  font-size: 0.7rem;
+  padding: 2px 8px;
   background: #fff;
   border: 1.5px solid #e53e3e;
-  border-radius: 8px;
+  border-radius: 10px;
   margin-top: 4px;
   white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(229, 62, 62, 0.15);
 }
 
 /* Forms with enhanced input focus animations */
@@ -2154,6 +2192,88 @@ select:focus::placeholder {
   /* Отменяем запрет на перенос строк */
   flex-wrap: wrap;
   /* Разрешаем flex-элементам переноситься на новую строку */
+  gap: 6px;
+  /* Отступы между кнопками */
+}
+
+/* 3. Фиксируем ширину колонок для компактного отображения */
+#rentals-table th:nth-child(1),
+#rentals-table td:nth-child(1) {
+  /* Клиент */
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#rentals-table th:nth-child(2),
+#rentals-table td:nth-child(2) {
+  /* Телефон */
+  max-width: 120px;
+}
+
+#rentals-table th:nth-child(3),
+#rentals-table td:nth-child(3) {
+  /* Велосипед */
+  max-width: 130px;
+}
+
+#rentals-table th:nth-child(4),
+#rentals-table td:nth-child(4),
+#rentals-table th:nth-child(5),
+#rentals-table td:nth-child(5) {
+  /* Даты начало и конец */
+  width: 130px;
+  min-width: 130px;
+  vertical-align: top;
+}
+
+#rentals-table th:nth-child(6),
+#rentals-table td:nth-child(6) {
+  /* Сумма */
+  width: 70px;
+  min-width: 70px;
+}
+
+#rentals-table th:nth-child(7),
+#rentals-table td:nth-child(7) {
+  /* Статус */
+  width: 120px;
+}
+
+#rentals-table th:nth-child(8),
+#rentals-table td:nth-child(8) {
+  /* Фотоконтроль */
+  width: 100px;
+  text-align: center;
+}
+
+#rentals-table th:nth-child(9),
+#rentals-table td:nth-child(9) {
+  /* Действия */
+  min-width: 120px;
+}
+
+/* 4. Стили для кнопок в колонке действий */
+#rentals-table td.table-actions button,
+#rentals-table td.table-actions a {
+  font-size: 0.8rem;
+  padding: 5px 10px;
+  white-space: nowrap;
+}
+
+#rentals-table td.table-actions .btn-link {
+  display: inline-block;
+  color: var(--icon-green);
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+#rentals-table td.table-actions .btn-link:hover {
+  background: var(--card-bg);
+  color: var(--dark-green);
 }
 
 /*

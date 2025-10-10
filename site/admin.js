@@ -1584,7 +1584,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const hasPhotos = r.extra_data?.pre_rental_photos?.completed_at;
                 const photoControlCell = hasPhotos 
                     ? `<button type="button" class="view-photos-btn" data-rental-id="${r.id}" style="font-size: 0.9rem;">👁️ Посмотреть</button>`
-                    : '<span style="color: #999;">—</span>';
+                    : '<span style="color: #999; display: block; text-align: center;">—</span>';
 
                 tr.innerHTML = `
                     <td>${r.clients?.name || 'Н/Д'}</td>
@@ -1596,11 +1596,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         : ''
                     }
                     </td>
-                    <td>${start}</td>
-                    <td>${endDisplay}</td>
+                    <td style="white-space: nowrap;">${start}</td>
+                    <td style="white-space: nowrap;">${endDisplay}</td>
                     <td>${typeof r.total_paid_rub === 'number' ? r.total_paid_rub : 0}</td>
                     <td>${createStatusBadge(r.status, 'rental')}</td>
-                    <td>${photoControlCell}</td>
+                    <td style="text-align: center;">${photoControlCell}</td>
                     <td class="table-actions">${actionsCell}</td>
                 `;
                 tbody.appendChild(tr);
