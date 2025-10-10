@@ -673,7 +673,7 @@
 
                 const bikeInfoContainer = document.getElementById('rental-bike-info-container');
                 if (bikeInfoContainer) {
-                    let bikeCode = rental.bikes?.code || rental.bikes?.registration_number || 'N/A';
+                    let bikeCode = rental.bikes?.bike_code || rental.bike_id || 'N/A';
                     let akbNumbers = 'Не указано';
                     
                     if (batteries && batteries.length > 0) {
@@ -1055,7 +1055,7 @@
                         // 2. Если брони нет, проверяем наличие активной аренды
                         const { data: rental, error: rentalError } = await supabase
                             .from('rentals')
-                            .select('*, tariffs(*), bikes(id, code, registration_number, model_name)')
+                            .select('*, tariffs(*), bikes(id, bike_code, registration_number, model_name)')
                             .eq('user_id', userId)
                             .in('status', ['active', 'overdue', 'pending_return', 'awaiting_battery_assignment', 'awaiting_contract_signing'])
                             .order('created_at', { ascending: false })

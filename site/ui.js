@@ -93,7 +93,7 @@ export async function renderActiveRentalView(mainContent, rental, userBalance) {
 
         const bikeInfoContainer = document.getElementById('rental-bike-info-container');
         if (bikeInfoContainer) {
-            let bikeCode = rental.bikes?.code || rental.bikes?.registration_number || 'N/A';
+            let bikeCode = rental.bikes?.bike_code || rental.bike_id || 'N/A';
             let akbNumbers = 'Не указано';
             
             if (batteries && batteries.length > 0) {

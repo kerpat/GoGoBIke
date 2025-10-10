@@ -1558,7 +1558,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const overdueTime = isOverdue ? calculateOverdue(r.current_period_ends_at) : null;
                 
                 if (isOverdue && overdueTime) {
-                    endDisplay += ` <span class="overdue-label">(просрочено ${overdueTime})</span>`;
+                    endDisplay += `<br><span class="overdue-badge">⚠️ +${overdueTime}</span>`;
                     tr.classList.add('rental-overdue');
                 }
 

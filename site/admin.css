@@ -944,6 +944,19 @@ body {
   margin-left: 8px;
 }
 
+.overdue-badge {
+  display: inline-block;
+  color: #e53e3e;
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 3px 8px;
+  background: #fff;
+  border: 1.5px solid #e53e3e;
+  border-radius: 8px;
+  margin-top: 4px;
+  white-space: nowrap;
+}
+
 /* Forms with enhanced input focus animations */
 input[type="text"],
 input[type="number"],
