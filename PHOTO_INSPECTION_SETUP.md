@@ -100,3 +100,4 @@ ALTER TABLE rentals DROP COLUMN IF EXISTS pre_rental_photos;
 -- Storage → rental-inspections → Delete bucket
 ```
 
+

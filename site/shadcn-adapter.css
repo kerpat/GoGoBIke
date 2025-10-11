@@ -1,0 +1,652 @@
+/**
+ * shadcn/ui Design System Adapter for GoGoBike
+ * Адаптация shadcn/ui для Vanilla JS с вашей зелёной темой
+ */
+
+/* ============================================
+   SHADCN/UI CSS VARIABLES
+   Адаптировано под вашу зелёную тему GoGoBike
+   ============================================ */
+
+:root {
+  /* Ваши существующие цвета GoGoBike */
+  --primary-green: #29e29a;
+  --dark-green: #083830;
+  --icon-green: #26b999;
+  --light-green-bg: #e0f8f1;
+  --light-green-nav: #d4f7eb;
+  --card-bg: #f0fdf9;
+  --white: #ffffff;
+
+  /* shadcn/ui Design Tokens (адаптировано) */
+  --background: oklch(1 0 0); /* белый фон */
+  --foreground: oklch(0.145 0 0); /* тёмный текст */
+  
+  --card: oklch(0.99 0.005 165); /* ваш card-bg #f0fdf9 */
+  --card-foreground: oklch(0.145 0 0);
+  
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  
+  /* Primary = ваш зелёный */
+  --primary: oklch(0.73 0.18 165); /* #29e29a */
+  --primary-foreground: oklch(0.15 0.05 165); /* #083830 */
+  
+  /* Secondary = светло-зелёный */
+  --secondary: oklch(0.95 0.03 165); /* #e0f8f1 */
+  --secondary-foreground: oklch(0.15 0.05 165);
+  
+  --muted: oklch(0.97 0.02 165);
+  --muted-foreground: oklch(0.556 0 0);
+  
+  --accent: oklch(0.92 0.04 165); /* #d4f7eb */
+  --accent-foreground: oklch(0.15 0.05 165);
+  
+  /* Destructive - красный для ошибок */
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  
+  /* Границы и инпуты */
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.65 0.15 165); /* зелёный ring для focus */
+  
+  /* Радиус скругления */
+  --radius: 0.75rem; /* 12px */
+  --radius-sm: calc(var(--radius) - 0.25rem);
+  --radius-md: calc(var(--radius) - 0.125rem);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 0.25rem);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  :root.dark {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    
+    --card: oklch(0.18 0.01 165);
+    --card-foreground: oklch(0.985 0 0);
+    
+    --popover: oklch(0.145 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    
+    --primary: oklch(0.73 0.18 165);
+    --primary-foreground: oklch(0.15 0.05 165);
+    
+    --secondary: oklch(0.269 0.03 165);
+    --secondary-foreground: oklch(0.985 0 0);
+    
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    
+    --accent: oklch(0.3 0.05 165);
+    --accent-foreground: oklch(0.985 0 0);
+    
+    --destructive: oklch(0.396 0.141 25.723);
+    --destructive-foreground: oklch(0.985 0 0);
+    
+    --border: oklch(0.269 0 0);
+    --input: oklch(0.269 0 0);
+    --ring: oklch(0.65 0.15 165);
+  }
+}
+
+/* ============================================
+   SHADCN/UI UTILITY CLASSES
+   Утилитарные классы в стиле Tailwind
+   ============================================ */
+
+/* Цвета фона */
+.bg-background { background-color: var(--background); }
+.bg-foreground { background-color: var(--foreground); }
+.bg-card { background-color: var(--card); }
+.bg-primary { background-color: var(--primary); }
+.bg-secondary { background-color: var(--secondary); }
+.bg-muted { background-color: var(--muted); }
+.bg-accent { background-color: var(--accent); }
+.bg-destructive { background-color: var(--destructive); }
+
+/* Цвета текста */
+.text-foreground { color: var(--foreground); }
+.text-primary { color: var(--primary); }
+.text-primary-foreground { color: var(--primary-foreground); }
+.text-secondary { color: var(--secondary-foreground); }
+.text-muted { color: var(--muted-foreground); }
+.text-destructive { color: var(--destructive); }
+
+/* Границы */
+.border { border: 1px solid var(--border); }
+.border-input { border: 1px solid var(--input); }
+.border-primary { border-color: var(--primary); }
+
+/* Скругления */
+.rounded { border-radius: var(--radius); }
+.rounded-sm { border-radius: var(--radius-sm); }
+.rounded-md { border-radius: var(--radius-md); }
+.rounded-lg { border-radius: var(--radius-lg); }
+.rounded-xl { border-radius: var(--radius-xl); }
+.rounded-full { border-radius: 9999px; }
+
+/* Focus ring */
+.ring { 
+  outline: 2px solid var(--ring); 
+  outline-offset: 2px; 
+}
+
+.focus-ring:focus {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* ============================================
+   SHADCN/UI COMPONENTS
+   Готовые компоненты в стиле shadcn/ui
+   ============================================ */
+
+/* Button Component */
+.btn-shadcn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  border: none;
+  outline: none;
+  user-select: none;
+}
+
+.btn-shadcn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.btn-shadcn:disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* Button variants */
+.btn-primary {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  padding: 0.5rem 1rem;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(41, 226, 154, 0.3);
+}
+
+.btn-secondary {
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+  padding: 0.5rem 1rem;
+}
+
+.btn-secondary:hover {
+  opacity: 0.8;
+}
+
+.btn-outline {
+  border: 1px solid var(--border);
+  background-color: transparent;
+  color: var(--foreground);
+  padding: 0.5rem 1rem;
+}
+
+.btn-outline:hover {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.btn-ghost {
+  background-color: transparent;
+  color: var(--foreground);
+  padding: 0.5rem 1rem;
+}
+
+.btn-ghost:hover {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.btn-destructive {
+  background-color: var(--destructive);
+  color: var(--destructive-foreground);
+  padding: 0.5rem 1rem;
+}
+
+.btn-destructive:hover {
+  opacity: 0.9;
+}
+
+/* Button sizes */
+.btn-sm {
+  height: 2.25rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.btn-lg {
+  height: 2.75rem;
+  padding: 0.5rem 2rem;
+  font-size: 1rem;
+}
+
+.btn-icon {
+  height: 2.5rem;
+  width: 2.5rem;
+  padding: 0;
+}
+
+/* Card Component */
+.card-shadcn {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background-color: var(--card);
+  color: var(--card-foreground);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.card-shadcn:hover {
+  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 1.5rem;
+}
+
+.card-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--card-foreground);
+}
+
+.card-description {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.card-content {
+  padding: 1.5rem;
+  padding-top: 0;
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  padding: 1.5rem;
+  padding-top: 0;
+}
+
+/* Input Component */
+.input-shadcn {
+  display: flex;
+  height: 2.5rem;
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--input);
+  background-color: var(--background);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--foreground);
+  transition: all 0.2s ease;
+}
+
+.input-shadcn::placeholder {
+  color: var(--muted-foreground);
+}
+
+.input-shadcn:focus {
+  outline: none;
+  border-color: var(--ring);
+  box-shadow: 0 0 0 2px rgba(41, 226, 154, 0.1);
+}
+
+.input-shadcn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Badge Component */
+.badge-shadcn {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-full);
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.badge-primary {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.badge-secondary {
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+  border-color: var(--border);
+}
+
+.badge-outline {
+  color: var(--foreground);
+  border-color: var(--border);
+}
+
+.badge-destructive {
+  background-color: var(--destructive);
+  color: var(--destructive-foreground);
+}
+
+/* Alert Component */
+.alert-shadcn {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  padding: 1rem;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.alert-info {
+  background-color: var(--card);
+  color: var(--card-foreground);
+}
+
+.alert-destructive {
+  border-color: var(--destructive);
+  background-color: oklch(from var(--destructive) l c h / 0.1);
+  color: var(--destructive);
+}
+
+.alert-success {
+  border-color: var(--primary);
+  background-color: oklch(from var(--primary) l c h / 0.1);
+  color: var(--primary-foreground);
+}
+
+.alert-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  line-height: 1;
+}
+
+.alert-description {
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+/* Skeleton Component (для загрузки) */
+.skeleton-shadcn {
+  animation: skeleton-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  background-color: var(--muted);
+  border-radius: var(--radius);
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Separator Component */
+.separator-shadcn {
+  flex-shrink: 0;
+  background-color: var(--border);
+}
+
+.separator-horizontal {
+  height: 1px;
+  width: 100%;
+}
+
+.separator-vertical {
+  width: 1px;
+  height: 100%;
+}
+
+/* Avatar Component */
+.avatar-shadcn {
+  position: relative;
+  display: flex;
+  height: 2.5rem;
+  width: 2.5rem;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+}
+
+.avatar-image {
+  aspect-ratio: 1 / 1;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+
+.avatar-fallback {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background-color: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* Switch Component */
+.switch-shadcn {
+  display: inline-flex;
+  height: 1.5rem;
+  width: 2.75rem;
+  flex-shrink: 0;
+  cursor: pointer;
+  align-items: center;
+  border-radius: var(--radius-full);
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+  background-color: var(--input);
+  position: relative;
+}
+
+.switch-shadcn.active {
+  background-color: var(--primary);
+}
+
+.switch-thumb {
+  pointer-events: none;
+  display: block;
+  height: 1.25rem;
+  width: 1.25rem;
+  border-radius: var(--radius-full);
+  background-color: var(--background);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+  transform: translateX(0);
+}
+
+.switch-shadcn.active .switch-thumb {
+  transform: translateX(1.25rem);
+}
+
+/* Progress Component */
+.progress-shadcn {
+  position: relative;
+  height: 0.5rem;
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background-color: var(--secondary);
+}
+
+.progress-indicator {
+  height: 100%;
+  width: 100%;
+  flex: 1 1 0%;
+  background-color: var(--primary);
+  transition: all 0.3s ease;
+}
+
+/* ============================================
+   ANIMATION UTILITIES
+   Анимации в стиле shadcn/ui
+   ============================================ */
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+.animate-fade-out {
+  animation: fade-out 0.2s ease-out;
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* ============================================
+   RESPONSIVE UTILITIES
+   ============================================ */
+
+/* Flexbox utilities */
+.flex { display: flex; }
+.inline-flex { display: inline-flex; }
+.flex-col { flex-direction: column; }
+.flex-row { flex-direction: row; }
+.items-center { align-items: center; }
+.items-start { align-items: flex-start; }
+.items-end { align-items: flex-end; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.justify-start { justify-content: flex-start; }
+.justify-end { justify-content: flex-end; }
+.gap-1 { gap: 0.25rem; }
+.gap-2 { gap: 0.5rem; }
+.gap-3 { gap: 0.75rem; }
+.gap-4 { gap: 1rem; }
+.gap-6 { gap: 1.5rem; }
+.gap-8 { gap: 2rem; }
+
+/* Spacing utilities */
+.p-0 { padding: 0; }
+.p-2 { padding: 0.5rem; }
+.p-4 { padding: 1rem; }
+.p-6 { padding: 1.5rem; }
+.p-8 { padding: 2rem; }
+.px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
+.px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+.py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+.m-0 { margin: 0; }
+.m-2 { margin: 0.5rem; }
+.m-4 { margin: 1rem; }
+.mx-auto { margin-left: auto; margin-right: auto; }
+.my-4 { margin-top: 1rem; margin-bottom: 1rem; }
+
+/* Width utilities */
+.w-full { width: 100%; }
+.w-auto { width: auto; }
+.h-full { height: 100%; }
+.h-auto { height: auto; }
+
+/* Text utilities */
+.text-xs { font-size: 0.75rem; }
+.text-sm { font-size: 0.875rem; }
+.text-base { font-size: 1rem; }
+.text-lg { font-size: 1.125rem; }
+.text-xl { font-size: 1.25rem; }
+.text-2xl { font-size: 1.5rem; }
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+.font-normal { font-weight: 400; }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+
+/* Display utilities */
+.hidden { display: none; }
+.block { display: block; }
+.inline-block { display: inline-block; }
+
+/* Opacity */
+.opacity-0 { opacity: 0; }
+.opacity-50 { opacity: 0.5; }
+.opacity-100 { opacity: 1; }
+
+/* Pointer events */
+.pointer-events-none { pointer-events: none; }
+.cursor-pointer { cursor: pointer; }
+.cursor-not-allowed { cursor: not-allowed; }
+
+/* Shadow utilities */
+.shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+.shadow { box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1); }
+.shadow-md { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); }
+.shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1); }
+
